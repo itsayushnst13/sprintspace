@@ -45,3 +45,15 @@ jobs:
       - name: Typecheck and build
         working-directory: frontend
         run: npm run build
+
+  containers:
+    name: Docker Compose validation and image builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+      - name: Build API image
+        run: docker build -t sprintspace-api:ci ./backend
+      - name: Build frontend image
+        run: docker build --build-arg VITE_API_URL=/api/v1 --build-arg VITE_SOCKET_URL= -t sprintspace-web:ci ./frontend
