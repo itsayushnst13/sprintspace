@@ -57,14 +57,18 @@ function assertTrustedOrigin(req: import("express").Request): void {
 async function sessionPayload(userId: string) {
   const user = await User.findById(userId).select("name email").lean();
   if (!user) throw new ApiError(401, "Account no longer exists", "ACCOUNT_NOT_FOUND");
-  const membership = await WorkspaceMember.findOne({ userId, status: "active" })
-    .populate("workspaceId", "name slug").lean();
-  const workspace = membership?.workspaceId as unknown as { _id: { toString(): string }; name: string; slug: string } | undefined;
+  const memberships = await WorkspaceMember.find({ userId, status: "active" })
+    .populate("workspaceId", "name slug").sort({ createdAt: 1 }).lean();
+  const workspaces = memberships.flatMap((membership) => {
+    const workspace = membership.workspaceId as unknown as { _id: { toString(): string }; name: string; slug: string } | null;
+    return workspace ? [{
+      id: workspace._id.toString(), name: workspace.name, slug: workspace.slug, role: membership.role
+    }] : [];
+  });
   return {
     user: { id: user._id.toString(), name: user.name, email: user.email },
-    workspace: workspace ? {
-      id: workspace._id.toString(), name: workspace.name, slug: workspace.slug, role: membership?.role
-    } : undefined
+    workspace: workspaces[0],
+    workspaces
   };
 }
 
