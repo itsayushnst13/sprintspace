@@ -217,3 +217,7 @@ h1{font:800 27px Manrope,sans-serif;letter-spacing:-1.2px;color:#24263b;margin:1
 .auth-terms a{color:#7772ba;text-decoration:none}
 .auth-mobile-brand{display:none}
 @media(max-width:800px){.auth-layout{grid-template-columns:1fr}.auth-aside{display:none}.auth-main{min-height:100vh;padding:35px 22px}.auth-mobile-brand{display:flex;align-items:center;gap:8px;font:800 18px Manrope,sans-serif;color:#292b40;margin-bottom:55px}.auth-mobile-brand svg{color:#6558e8}.auth-form-wrap{max-width:400px}}
+
+.socket-indicator{font-size:9px;color:#42a587;background:#eaf7f1;border-radius:20px;padding:4px 7px;margin-left:8px;white-space:nowrap}
+.auth-loading{min-height:100vh;display:flex;align-items:center;justify-content:center;gap:12px;color:#8e91a2;font-size:12px;background:#fafaff}
+.auth-loading .brand-mark{width:34px;height:34px}
