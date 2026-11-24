@@ -995,3 +995,42 @@ body { font-size: 15px; }
   .modal-scrim { padding: 12px; }
   .create-modal { max-height: calc(100dvh - 24px); }
 }
+
+
+/* Sidebar scrolling: keep the brand, workspace switcher and account actions visible
+   while allowing workspace navigation and the complete project list to scroll. */
+.sidebar {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+.sidebar .brand-lockup,
+.sidebar .workspace-switch-wrap,
+.sidebar .sidebar-bottom {
+  flex: 0 0 auto;
+}
+.sidebar-scroll-region {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #496579 transparent;
+  padding: 0 2px 14px 0;
+}
+.sidebar-scroll-region::-webkit-scrollbar { width: 6px; }
+.sidebar-scroll-region::-webkit-scrollbar-track { background: transparent; }
+.sidebar-scroll-region::-webkit-scrollbar-thumb {
+  background: #496579;
+  border-radius: 20px;
+}
+.sidebar-scroll-region::-webkit-scrollbar-thumb:hover { background: #6a879a; }
+.sidebar-bottom { margin-top: 0; }
+.sidebar-collapsed .sidebar-scroll-region { padding-right: 0; }
+@media(max-width:700px) {
+  .sidebar-scroll-region { overscroll-behavior: contain; }
+}
