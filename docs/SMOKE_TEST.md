@@ -72,7 +72,7 @@ Use this checklist after starting the application. These are manual runtime chec
 - [ ] Try refreshing/logging out from a disallowed Origin; the API should reject the request.
 - [ ] Confirm login and registration reject requests from a disallowed Origin.
 - [ ] Reuse an already rotated refresh token; the server should revoke active refresh sessions for that user.
-- [ ] Confirm a Member cannot archive projects or delete tasks.
+- [ ] Confirm a Developer (including a legacy Member account) cannot archive projects or delete tasks.
 - [ ] Confirm an unrelated workspace member cannot edit another user's task.
 - [ ] Confirm malformed JSON and invalid Mongo IDs return client errors rather than generic 500 responses.
 
