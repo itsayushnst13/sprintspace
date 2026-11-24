@@ -8,7 +8,9 @@ type SessionState = {
   user: User | null;
   workspace: Workspace | null;
   authenticated: boolean;
+  ready: boolean;
   establish: (accessToken: string, user: User, workspace?: Workspace) => void;
+  markReady: () => void;
   clear: () => void;
 };
 
@@ -16,12 +18,14 @@ export const useSession = create<SessionState>((set) => ({
   user: null,
   workspace: null,
   authenticated: false,
+  ready: false,
   establish: (accessToken, user, workspace) => {
     setAccessToken(accessToken);
-    set({ user, workspace: workspace ?? null, authenticated: true });
+    set({ user, workspace: workspace ?? null, authenticated: true, ready: true });
   },
+  markReady: () => set({ ready: true }),
   clear: () => {
     setAccessToken(null);
-    set({ user: null, workspace: null, authenticated: false });
+    set({ user: null, workspace: null, authenticated: false, ready: true });
   }
 }));
