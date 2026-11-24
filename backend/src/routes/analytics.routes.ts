@@ -15,7 +15,9 @@ analyticsRouter.get("/", async (req, res, next) => {
   try {
     const workspaceId = req.workspaceId!;
     const cacheKey = `workspace:${workspaceId}:analytics`;
-    const cached = await redis.get(cacheKey);
+    let cached: string | null = null;
+    try { cached = await redis.get(cacheKey); }
+    catch (cacheError) { console.warn("Analytics cache read failed:", cacheError); }
     if (cached) {
       res.json(JSON.parse(cached));
       return;
@@ -46,7 +48,8 @@ analyticsRouter.get("/", async (req, res, next) => {
       tasksByStatus: statusCounts,
       recentActivity
     };
-    await redis.set(cacheKey, JSON.stringify(response), "EX", 30);
+    try { await redis.set(cacheKey, JSON.stringify(response), "EX", 30); }
+    catch (cacheError) { console.warn("Analytics cache write failed:", cacheError); }
     res.json(response);
   } catch (error) { next(error); }
 });
