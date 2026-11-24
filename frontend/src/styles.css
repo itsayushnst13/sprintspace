@@ -296,3 +296,18 @@ h1{font:800 27px Manrope,sans-serif;letter-spacing:-1.2px;color:#24263b;margin:1
 .task-edit-fields .primary-button{grid-column:1/-1;justify-content:center}
 .team-feedback{font-size:10px;color:#4e8a72;margin:10px 0 0}
 @media(max-width:520px){.task-edit-fields{grid-template-columns:1fr}.task-edit-fields .primary-button{grid-column:auto}}
+
+.kanban-board{display:grid;grid-template-columns:repeat(4,minmax(210px,1fr));gap:12px;align-items:start;overflow-x:auto;padding-bottom:10px}
+.kanban-column{min-height:300px;background:#f7f7fb;border:1px solid #eeeef4;border-radius:12px;padding:12px}
+.kanban-column-head{display:flex;align-items:center;gap:8px;padding:3px 2px 12px}
+.kanban-column-head strong{font-size:10px;color:#55576a;flex:1}
+.kanban-column-head>span:last-child{font-size:9px;color:#999bab;background:#ededf4;border-radius:20px;padding:3px 7px}
+.kanban-status-dot{width:7px;height:7px;border-radius:50%;background:#a3a5b4}
+.kanban-status-dot.in-progress{background:#8a7bea}.kanban-status-dot.in-review{background:#e0a65d}.kanban-status-dot.done{background:#58b69b}
+.kanban-task-card{display:flex;flex-direction:column;gap:8px;background:#fff;border:1px solid #ececf2;border-radius:9px;padding:12px;margin-bottom:8px;box-shadow:0 2px 8px #25254008;cursor:grab}
+.kanban-task-card:active{cursor:grabbing}
+.kanban-task-card>span{font-size:9px;color:#999bab}
+.kanban-task-card>div{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.kanban-task-card small{font-size:8px;color:#9b9dac}
+.kanban-empty{font-size:9px;color:#a3a5b2;text-align:center;padding:28px 5px}
+@media(max-width:900px){.kanban-board{grid-template-columns:repeat(4,240px)}}
