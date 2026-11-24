@@ -311,3 +311,11 @@ h1{font:800 27px Manrope,sans-serif;letter-spacing:-1.2px;color:#24263b;margin:1
 .kanban-task-card small{font-size:8px;color:#9b9dac}
 .kanban-empty{font-size:9px;color:#a3a5b2;text-align:center;padding:28px 5px}
 @media(max-width:900px){.kanban-board{grid-template-columns:repeat(4,240px)}}
+
+.workspace-switch-wrap{position:relative;margin:20px 16px 26px}
+.workspace-switch-wrap .workspace-switch{width:100%;margin:0}
+.workspace-menu{position:absolute;z-index:40;top:calc(100% + 7px);left:0;right:0;background:#fff;border:1px solid #e9e9f0;border-radius:10px;padding:5px;box-shadow:0 12px 30px #24243a18;max-height:240px;overflow:auto}
+.workspace-menu button{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px;border:0;border-radius:7px;background:transparent;text-align:left}
+.workspace-menu button:hover,.workspace-menu button.selected{background:#f5f3ff}
+.workspace-menu strong{font-size:10px;color:#4b4d61;overflow:hidden;text-overflow:ellipsis}
+.workspace-menu span{font-size:9px;color:#999bab}
