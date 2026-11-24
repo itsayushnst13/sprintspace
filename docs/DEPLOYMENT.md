@@ -10,7 +10,7 @@ From the repository root:
 docker compose --profile app up --build
 ```
 
-Open the frontend at http://localhost:8080. The API health endpoint is available at http://localhost:5001/health.
+Open the frontend at http://localhost:8080. The API liveness endpoint is available at http://localhost:5001/health and dependency readiness at http://localhost:5001/ready. Compose binds published ports to host loopback for local development.
 
 To stop:
 
@@ -34,7 +34,7 @@ Before deploying to a public environment:
 2. Provide unique, high-entropy `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` values through the deployment secret manager.
 3. Set `CLIENT_URL` to the exact HTTPS frontend origin.
 4. Use managed MongoDB and Redis with TLS, authentication, backups, and network restrictions.
-5. Configure HTTPS termination and secure proxy headers.
+5. Configure HTTPS termination and secure proxy headers. Set `TRUST_PROXY=true` only when the API is behind a known, trusted reverse proxy; never enable it when clients can reach the API directly.
 6. Restrict database/network access to the API service.
 7. Configure log collection, uptime monitoring, alerting, and backup restore drills.
 8. Run CI and tenant-isolation/security tests before promoting a release.
