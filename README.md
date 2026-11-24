@@ -151,7 +151,7 @@ Backend (from `backend/`): `npm run dev`, `npm run typecheck`, `npm test`, `npm 
 
 Frontend (from `frontend/`): `npm run dev`, `npm run typecheck`, `npm run build`.
 
-GitHub Actions runs backend typecheck/tests/build and frontend build on pushes and pull requests to `main`.
+GitHub Actions runs backend typecheck/tests/build, frontend typecheck/production build, Docker Compose validation, and both container image builds on pushes and pull requests to `main`.
 
 Never commit real credentials or local `.env` files. Use the provided `.env.example` templates.
 
