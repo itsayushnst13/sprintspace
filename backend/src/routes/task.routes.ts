@@ -7,6 +7,7 @@ import { requireAuth } from "../middleware/auth.js";
 import { requireWorkspaceMember } from "../middleware/workspace-access.js";
 import { ApiError } from "../middleware/error-handler.js";
 import { ActivityLog } from "../models/ActivityLog.js";
+import { Notification } from "../models/Notification.js";
 import { emitWorkspaceEvent } from "../realtime/socket.js";
 
 export const taskRouter = Router({ mergeParams: true });
@@ -44,6 +45,10 @@ taskRouter.post("/", async (req, res, next) => {
     const task = await Task.create({ ...input, workspaceId: req.workspaceId, createdBy: req.userId });
     await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "task", entityId: task._id, action: "task.created", summary: `Created task "${task.title}"` });
     emitWorkspaceEvent(req.workspaceId!, "task:created", { task });
+    if (task.assigneeId && task.assigneeId.toString() !== req.userId) {
+      const notification = await Notification.create({ workspaceId: req.workspaceId, recipientId: task.assigneeId, actorId: req.userId, type: "task_assigned", title: "You were assigned a task", body: task.title, entityType: "task", entityId: task._id });
+      emitWorkspaceEvent(req.workspaceId!, "notification:created", { notification });
+    }
     res.status(201).json({ task });
   } catch (error) { next(error); }
 });
