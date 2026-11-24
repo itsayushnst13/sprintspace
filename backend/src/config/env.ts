@@ -11,7 +11,8 @@ const schema = z.object({
   JWT_REFRESH_SECRET: z.string().min(32, "JWT_REFRESH_SECRET must be at least 32 characters"),
   ACCESS_TOKEN_TTL: z.string().default("15m"),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(7),
-  COOKIE_SECURE: z.string().default("false").transform((v) => v === "true")
+  COOKIE_SECURE: z.string().default("false").transform((v) => v === "true"),
+  TRUST_PROXY: z.string().default("false").transform((v) => v === "true" || v === "1")
 });
 
 export const env = schema.parse(process.env);
