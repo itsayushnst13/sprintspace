@@ -1,6 +1,7 @@
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5001/api/v1";
 
 type ApiErrorBody = { error?: { message?: string; code?: string } };
+type RefreshResponse = { accessToken: string };
 
 export class ApiError extends Error {
   constructor(message: string, public readonly status: number, public readonly code?: string) {
@@ -10,6 +11,8 @@ export class ApiError extends Error {
 }
 
 let accessToken: string | null = null;
+let refreshInFlight: Promise<string | null> | null = null;
+
 export function setAccessToken(token: string | null): void {
   accessToken = token;
 }
@@ -18,14 +21,37 @@ export function getAccessToken(): string | null {
   return accessToken;
 }
 
-export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function refreshAccessToken(): Promise<string | null> {
+  if (!refreshInFlight) {
+    refreshInFlight = fetch(`${API_URL}/auth/refresh`, {
+      method: "POST",
+      credentials: "include"
+    }).then(async (response) => {
+      if (!response.ok) return null;
+      const result = await response.json() as RefreshResponse;
+      setAccessToken(result.accessToken);
+      return result.accessToken;
+    }).catch(() => null).finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+async function send<T>(path: string, options: RequestInit, token: string | null): Promise<Response> {
   const headers = new Headers(options.headers);
   if (options.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  else headers.delete("Authorization");
+  return fetch(`${API_URL}${path}`, { ...options, headers, credentials: "include" });
+}
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options, headers, credentials: "include"
-  });
+export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+  let response = await send(path, options, accessToken);
+  if (response.status === 401 && !path.startsWith("/auth/")) {
+    const renewed = await refreshAccessToken();
+    if (renewed) response = await send(path, options, renewed);
+  }
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({})) as ApiErrorBody;
