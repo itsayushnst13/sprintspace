@@ -289,3 +289,10 @@ h1{font:800 27px Manrope,sans-serif;letter-spacing:-1.2px;color:#24263b;margin:1
 .activity-feed-row p{font-size:11px;color:#707386;margin:0}
 .activity-feed-row time{font-size:9px;color:#a0a2af}
 @media(max-width:620px){.team-panel{padding:16px}.invite-form{align-items:stretch}.invite-form input{flex-basis:100%}.team-row{gap:8px}.member-role-select{max-width:84px}.member-remove{padding:4px}}
+
+.task-edit-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 22px;border-bottom:1px solid #f0f0f4}
+.task-edit-fields label{display:flex;flex-direction:column;gap:5px;font-size:9px;font-weight:700;color:#686a7c}
+.task-edit-fields select,.task-edit-fields input{height:34px;border:1px solid #e8e8ef;border-radius:7px;padding:0 8px;background:#fff;color:#535569;font-size:10px;outline:0}
+.task-edit-fields .primary-button{grid-column:1/-1;justify-content:center}
+.team-feedback{font-size:10px;color:#4e8a72;margin:10px 0 0}
+@media(max-width:520px){.task-edit-fields{grid-template-columns:1fr}.task-edit-fields .primary-button{grid-column:auto}}
