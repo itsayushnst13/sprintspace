@@ -8,6 +8,7 @@ import { requireAuth } from "../middleware/auth.js";
 import { requireWorkspaceMember } from "../middleware/workspace-access.js";
 import { ApiError } from "../middleware/error-handler.js";
 import { emitUserEvent, emitWorkspaceEvent } from "../realtime/socket.js";
+import { invalidateWorkspaceAnalytics } from "../cache/workspace-cache.js";
 
 export const commentsRouter = Router({ mergeParams: true });
 commentsRouter.use(requireAuth, requireWorkspaceMember());
@@ -37,6 +38,7 @@ commentsRouter.post("/", async (req, res, next) => {
       entityId: comment._id, action: "comment.created", summary: "Added a comment to a task",
       metadata: { taskId: task.id, taskTitle: task.title }
     });
+    await invalidateWorkspaceAnalytics(req.workspaceId!);
     if (task.assigneeId && task.assigneeId.toString() !== req.userId) {
       const notification = await Notification.create({
         workspaceId: req.workspaceId, recipientId: task.assigneeId, actorId: req.userId,
