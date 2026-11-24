@@ -885,3 +885,31 @@ body { font-size: 15px; }
   .sidebar.sidebar-collapsed .profile-meta { display: flex; }
   .sidebar.sidebar-collapsed + .main-panel { margin-left: 0; }
 }
+
+
+/* Calendar usability: make overflow actionable and clarify empty months */
+.calendar-more-toggle {
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  width: max-content;
+  max-width: 100%;
+}
+.calendar-more-toggle:hover { color: #347d68; text-decoration: underline; }
+.calendar-empty-note {
+  margin: 16px 0 0;
+  padding: 13px 15px;
+  border: 1px dashed #dce7e3;
+  border-radius: 10px;
+  background: #f8fbf9;
+  color: #71877e;
+  font-size: 13px;
+  line-height: 1.5;
+}
+@media(max-width:700px) {
+  .calendar-more-toggle { font-size: 9px; }
+  .calendar-empty-note { font-size: 12px; }
+}
