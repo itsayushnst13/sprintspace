@@ -57,6 +57,11 @@ taskRouter.post("/", async (req, res, next) => {
 taskRouter.patch("/:taskId", async (req, res, next) => {
   try {
     const input = taskInput.omit({ projectId: true }).partial().refine((value) => Object.keys(value).length > 0, "At least one field is required").parse(req.body);
+    const existingTask = await Task.findOne({ _id: req.params.taskId, workspaceId: req.workspaceId });
+    if (!existingTask) throw new ApiError(404, "Task not found");
+    const isPrivileged = req.workspaceRole === "Admin" || req.workspaceRole === "Manager";
+    const isOwnerOrAssignee = existingTask.createdBy.toString() === req.userId || existingTask.assigneeId?.toString() === req.userId;
+    if (!isPrivileged && !isOwnerOrAssignee) throw new ApiError(403, "Only task creator, assignee, or workspace managers can edit this task");
     if (input.assigneeId) {
       const member = await WorkspaceMember.exists({ workspaceId: req.workspaceId, userId: input.assigneeId, status: "active" });
       if (!member) throw new ApiError(400, "Assignee must be an active member of this workspace");
