@@ -17,7 +17,7 @@ type NavItem = { label: string; icon: typeof LayoutDashboard };
 const primaryNav: NavItem[] = [
   { label: "Overview", icon: LayoutDashboard }, { label: "My tasks", icon: ListTodo },
   { label: "Projects", icon: FolderKanban }, { label: "Calendar", icon: CalendarDays },
-  { label: "Team", icon: Users }
+  { label: "Team", icon: Users }, { label: "Activity", icon: Activity }
 ];
 
 type AnalyticsResponse = { metrics: { projects: number; members: number; tasks: number; completedTasks: number; dueIn24Hours: number; completionRate: number }; tasksByStatus: Array<{ _id: string; count: number }> };
@@ -26,12 +26,14 @@ type TaskRecord = { _id: string; title: string; projectId: string; status: TaskS
 type CommentRecord = { _id: string; body: string; createdAt: string; authorId: { name: string } | string };
 type TeamMember = { _id: string; role: "Admin" | "Manager" | "Member"; userId: { _id: string; name: string; email: string } | string; createdAt: string };
 type InvitationRecord = { _id: string; email: string; role: "Manager" | "Member"; expiresAt: string };
+type ActivityRecord = { _id: string; summary: string; action: string; createdAt: string; actorId: { name: string } | string };
 
 function App() {
   const session = useSession();
   const queryClient = useQueryClient();
   const bootStarted = useRef(false);
   const [socketConnected, setSocketConnected] = useState(false);
+  const [activeNav, setActiveNav] = useState("Overview");
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [commentDraft, setCommentDraft] = useState("");
   const workspaceId = session.workspace?.id;
@@ -66,6 +68,11 @@ function App() {
     queryKey: ["task-comments", workspaceId, selectedTaskId],
     queryFn: () => apiRequest<{ comments: CommentRecord[] }>(`/workspaces/${workspaceId}/tasks/${selectedTaskId}/comments`),
     enabled: session.authenticated && Boolean(workspaceId) && Boolean(selectedTaskId)
+  });
+  const activityQuery = useQuery({
+    queryKey: ["workspace-activity", workspaceId],
+    queryFn: () => apiRequest<{ activity: ActivityRecord[] }>(`/workspaces/${workspaceId}/activity`),
+    enabled: session.authenticated && Boolean(workspaceId) && activeNav === "Activity"
   });
   const teamQuery = useQuery({
     queryKey: ["workspace-team", workspaceId],
@@ -102,6 +109,7 @@ function App() {
       void queryClient.invalidateQueries({ queryKey: ["task-comments", workspaceId] });
       void queryClient.invalidateQueries({ queryKey: ["workspace-team", workspaceId] });
       void queryClient.invalidateQueries({ queryKey: ["workspace-invitations", workspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ["workspace-activity", workspaceId] });
     };
     socket.on("task:created", refreshWorkspaceData);
     socket.on("task:updated", refreshWorkspaceData);
@@ -112,7 +120,6 @@ function App() {
     socket.on("notification:created", refreshWorkspaceData);
     return () => { socket.disconnect(); setSocketConnected(false); };
   }, [session.authenticated, workspaceId, queryClient]);
-  const [activeNav, setActiveNav] = useState("Overview");
   const [mobileNav, setMobileNav] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -207,6 +214,9 @@ function App() {
           {teamQuery.isLoading ? <p className="team-empty">Loading members…</p> : <div className="team-list">{(teamQuery.data?.members ?? []).map((member) => { const user = typeof member.userId === "object" ? member.userId : null; return <div className="team-row" key={member._id}><div className="avatar avatar-profile">{user?.name?.split(" ").map((part) => part[0]).slice(0,2).join("") ?? "U"}</div><div className="team-identity"><strong>{user?.name ?? "Workspace member"}</strong><span>{user?.email ?? ""}</span></div><span className={`role-pill role-${member.role.toLowerCase()}`}>{member.role}</span></div>; })}</div>}
         </section>
         {session.workspace?.role !== "Member" && <section className="surface team-panel"><div className="section-heading"><div><h2>Invite a teammate</h2><p>Invitations expire after 7 days. Email delivery is not configured yet.</p></div></div><form className="invite-form" onSubmit={sendInvite}><input type="email" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="teammate@company.com" required/><select value={inviteRole} onChange={(event) => setInviteRole(event.target.value as "Manager" | "Member")}><option value="Member">Member</option>{session.workspace?.role === "Admin" && <option value="Manager">Manager</option>}</select><button className="primary-button" disabled={!inviteEmail.trim()}><Plus size={15}/> Create invite</button></form>{inviteToken && <div className="invite-token"><strong>One-time invite token</strong><code>{inviteToken}</code><button className="text-button" onClick={() => void navigator.clipboard.writeText(inviteToken)}>Copy token</button><p>Share this token securely. The invitee must sign in with the invited email and accept it through the invitation API.</p></div>}<div className="pending-invites"><h3>Pending invitations</h3>{(invitationsQuery.data?.invitations ?? []).length === 0 ? <p className="team-empty">No pending invitations.</p> : invitationsQuery.data?.invitations.map((invitation) => <div className="team-row" key={invitation._id}><div className="team-identity"><strong>{invitation.email}</strong><span>Expires {new Date(invitation.expiresAt).toLocaleDateString()}</span></div><span className="role-pill role-member">{invitation.role}</span></div>)}</div></section>}
+      </> : activeNav === "Activity" ? <>
+        <section className="welcome-row"><div><div className="eyebrow"><span className="live-dot"/> WORKSPACE HISTORY</div><h1>Activity feed <span className="wave">✦</span></h1><p>Recent changes and collaboration across your workspace.</p></div></section>
+        <section className="surface team-panel"><div className="section-heading"><div><h2>Recent activity</h2><p>Latest 50 workspace events</p></div></div>{activityQuery.isLoading ? <p className="team-empty">Loading activity…</p> : (activityQuery.data?.activity ?? []).length === 0 ? <p className="team-empty">No activity yet. Create a project or task to get started.</p> : <div className="activity-feed">{activityQuery.data?.activity.map((item) => <article className="activity-feed-row" key={item._id}><div className="activity-feed-icon"><Activity size={15}/></div><div><strong>{typeof item.actorId === "object" ? item.actorId.name : "A teammate"}</strong><p>{item.summary}</p><time>{new Date(item.createdAt).toLocaleString()}</time></div></article>)}</div>}</section>
       </> : <>
         <section className="welcome-row"><div><div className="eyebrow"><span className="live-dot"/> YOUR WORKSPACE</div><h1>Good morning, {session.user?.name.split(" ")[0]??"there"} <span className="wave">✦</span></h1><p>Here's what's happening across your workspace today.</p></div><button className="primary-button" onClick={()=>setCreateModal("project")}><Plus size={17}/> Create new project</button></section>
         <section className="stats-grid"><StatCard title="Total projects" value={metrics?.projects.toString() ?? "—"} change="Live workspace data" icon={<FolderKanban size={18}/>} tone="violet"/><StatCard title="Tasks completed" value={metrics?.completedTasks.toString() ?? "—"} change={`${metrics?.tasks ?? 0} total tasks`} icon={<CheckCircle2 size={18}/>} tone="green"/><StatCard title="Team members" value={metrics?.members.toString() ?? "—"} change="Active memberships" icon={<Users size={18}/>} tone="blue"/><StatCard title="Completion rate" value={`${metrics?.completionRate ?? 0}%`} change={`${metrics?.dueIn24Hours ?? 0} due in 24 hours`} icon={<Target size={18}/>} tone="orange"/></section>
