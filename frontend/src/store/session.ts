@@ -21,11 +21,13 @@ export const useSession = create<SessionState>((set) => ({
   ready: false,
   establish: (accessToken, user, workspace) => {
     setAccessToken(accessToken);
+    if (workspace) localStorage.setItem("sprintspace.workspaceId", workspace.id);
     set({ user, workspace: workspace ?? null, authenticated: true, ready: true });
   },
   markReady: () => set({ ready: true }),
   clear: () => {
     setAccessToken(null);
+    localStorage.removeItem("sprintspace.workspaceId");
     set({ user: null, workspace: null, authenticated: false, ready: true });
   }
 }));
