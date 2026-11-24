@@ -9,6 +9,7 @@ import { ApiError } from "../middleware/error-handler.js";
 import { ActivityLog } from "../models/ActivityLog.js";
 import { Notification } from "../models/Notification.js";
 import { emitWorkspaceEvent } from "../realtime/socket.js";
+import { canDeleteTasks } from "../security/permissions.js";
 
 export const taskRouter = Router({ mergeParams: true });
 taskRouter.use(requireAuth, requireWorkspaceMember());
@@ -73,7 +74,7 @@ taskRouter.patch("/:taskId", async (req, res, next) => {
 
 taskRouter.delete("/:taskId", async (req, res, next) => {
   try {
-    if (!["Admin", "Manager"].includes(req.workspaceRole ?? "")) throw new ApiError(403, "Only admins and managers can delete tasks");
+    if (!req.workspaceRole || !canDeleteTasks(req.workspaceRole)) throw new ApiError(403, "Only admins and managers can delete tasks");
     const task = await Task.findOneAndDelete({ _id: req.params.taskId, workspaceId: req.workspaceId });
     if (!task) throw new ApiError(404, "Task not found");
     await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "task", entityId: task._id, action: "task.deleted", summary: `Deleted task "${task.title}"` });
