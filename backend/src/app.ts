@@ -12,6 +12,7 @@ import { apiRouter } from "./routes/index.js";
 export const app = express();
 
 app.disable("x-powered-by");
+if (env.TRUST_PROXY) app.set("trust proxy", 1);
 app.use(helmet());
 app.use(cors({
   origin: env.CLIENT_URL,
