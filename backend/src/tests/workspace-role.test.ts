@@ -1,10 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-
-type Role = "Admin" | "Manager" | "Member";
-const canManageProjects = (role: Role) => role === "Admin" || role === "Manager";
-const canArchiveProjects = (role: Role) => role === "Admin";
-const canDeleteTasks = (role: Role) => role === "Admin" || role === "Manager";
+import { canArchiveProjects, canDeleteTasks, canManageProjects } from "../security/permissions.js";
 
 test("only Admin and Manager can manage projects", () => {
   assert.equal(canManageProjects("Admin"), true);
