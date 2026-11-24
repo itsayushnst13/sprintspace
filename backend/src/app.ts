@@ -24,6 +24,15 @@ app.use("/api", rateLimit({
   standardHeaders: "draft-7",
   legacyHeaders: false
 }));
+const authAttemptLimiter = rateLimit({
+  windowMs: 15 * 60_000,
+  limit: 10,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: { code: "AUTH_RATE_LIMITED", message: "Too many authentication attempts. Try again in 15 minutes." } }
+});
+app.use("/api/v1/auth/login", authAttemptLimiter);
+app.use("/api/v1/auth/register", authAttemptLimiter);
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "sprintspace-api" });
