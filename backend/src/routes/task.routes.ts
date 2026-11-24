@@ -9,6 +9,7 @@ import { ApiError } from "../middleware/error-handler.js";
 import { ActivityLog } from "../models/ActivityLog.js";
 import { Notification } from "../models/Notification.js";
 import { Comment } from "../models/Comment.js";
+import { User } from "../models/User.js";
 import { emitUserEvent, emitWorkspaceEvent } from "../realtime/socket.js";
 import { canDeleteTasks, canEditTask } from "../security/permissions.js";
 import { invalidateWorkspaceAnalytics } from "../cache/workspace-cache.js";
@@ -48,6 +49,14 @@ taskRouter.post("/", async (req, res, next) => {
     const task = await Task.create({ ...input, workspaceId: req.workspaceId, createdBy: req.userId });
     await invalidateWorkspaceAnalytics(req.workspaceId!);
     await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "task", entityId: task._id, action: "task.created", summary: `Created task "${task.title}"` });
+    if (task.assigneeId) {
+      const assignee = await User.findById(task.assigneeId).select("name").lean();
+      await ActivityLog.create({
+        workspaceId: req.workspaceId, actorId: req.userId, entityType: "task", entityId: task._id,
+        action: "task.assigned", summary: `Assigned ${assignee?.name ?? "a teammate"} to "${task.title}"`,
+        metadata: { assigneeId: task.assigneeId.toString() }
+      });
+    }
     emitWorkspaceEvent(req.workspaceId!, "task:created", { task });
     if (task.assigneeId && task.assigneeId.toString() !== req.userId) {
       const notification = await Notification.create({ workspaceId: req.workspaceId, recipientId: task.assigneeId, actorId: req.userId, type: "task_assigned", title: "You were assigned a task", body: task.title, entityType: "task", entityId: task._id });
@@ -77,9 +86,23 @@ taskRouter.patch("/:taskId", async (req, res, next) => {
     );
     if (!task) throw new ApiError(404, "Task not found");
     await invalidateWorkspaceAnalytics(req.workspaceId!);
-    await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "task", entityId: task._id, action: "task.updated", summary: `Updated task "${task.title}"`, metadata: input });
     const previousAssignee = existingTask.assigneeId?.toString() ?? null;
     const currentAssignee = task.assigneeId?.toString() ?? null;
+    const assigneeChanged = currentAssignee !== previousAssignee;
+    const assignedUser = assigneeChanged && currentAssignee
+      ? await User.findById(currentAssignee).select("name").lean()
+      : null;
+    await ActivityLog.create({
+      workspaceId: req.workspaceId, actorId: req.userId, entityType: "task", entityId: task._id,
+      action: assigneeChanged ? (currentAssignee ? "task.assigned" : "task.unassigned") : "task.updated",
+      summary: assigneeChanged
+        ? currentAssignee ? `Assigned ${assignedUser?.name ?? "a teammate"} to "${task.title}"` : `Unassigned "${task.title}"`
+        : `Updated task "${task.title}"`,
+      metadata: {
+        ...input,
+        ...(assigneeChanged ? { previousAssigneeId: previousAssignee, currentAssigneeId: currentAssignee } : {})
+      }
+    });
     if (currentAssignee && currentAssignee !== previousAssignee && currentAssignee !== req.userId) {
       const notification = await Notification.create({
         workspaceId: req.workspaceId, recipientId: task.assigneeId, actorId: req.userId,
