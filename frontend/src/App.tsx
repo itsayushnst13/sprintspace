@@ -134,6 +134,8 @@ function App() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"Manager" | "Member">("Member");
   const [inviteToken, setInviteToken] = useState("");
+  const [acceptInviteToken, setAcceptInviteToken] = useState("");
+  const [inviteFeedback, setInviteFeedback] = useState("");
 
   const metrics = analyticsQuery.data?.metrics;
   const chartData = analyticsQuery.data?.tasksByStatus.map((item) => ({ day: item._id, completed: item.count, created: 0 })) ?? weeklyActivity;
@@ -155,6 +157,23 @@ function App() {
   if (!session.authenticated) return <AuthScreen />;
 
   const completeTask = (id: string) => setCheckedTasks((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  const acceptInvite = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setInviteFeedback("");
+    const accepted = await apiRequest<{ workspaceId: string; role: string }>("/invitations/accept", {
+      method: "POST", body: JSON.stringify({ token: acceptInviteToken.trim() })
+    });
+    const result = await apiRequest<{ workspaces: Array<{ id: string; name: string; slug: string; role: string }> }>("/workspaces");
+    const workspace = result.workspaces.find((item) => item.id === accepted.workspaceId);
+    if (workspace && session.user && getAccessToken()) {
+      session.establish(getAccessToken()!, session.user, workspace);
+      setActiveNav("Overview");
+      setInviteFeedback("Invitation accepted. Workspace switched successfully.");
+      setAcceptInviteToken("");
+    } else {
+      setInviteFeedback("Invitation accepted. Refresh the workspace list to open it.");
+    }
+  };
   const sendInvite = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!inviteEmail.trim()) return;
@@ -213,6 +232,7 @@ function App() {
         <section className="surface team-panel"><div className="section-heading"><div><h2>Members</h2><p>{teamQuery.data?.members.length ?? 0} active workspace members</p></div></div>
           {teamQuery.isLoading ? <p className="team-empty">Loading members…</p> : <div className="team-list">{(teamQuery.data?.members ?? []).map((member) => { const user = typeof member.userId === "object" ? member.userId : null; return <div className="team-row" key={member._id}><div className="avatar avatar-profile">{user?.name?.split(" ").map((part) => part[0]).slice(0,2).join("") ?? "U"}</div><div className="team-identity"><strong>{user?.name ?? "Workspace member"}</strong><span>{user?.email ?? ""}</span></div><span className={`role-pill role-${member.role.toLowerCase()}`}>{member.role}</span>{session.workspace?.role === "Admin" && member.role !== "Admin" && <select className="member-role-select" value={member.role} aria-label={`Change role for ${user?.name ?? "member"}`} onChange={async (event) => { await apiRequest(`/workspaces/${workspaceId}/team/members/${member._id}/role`, { method: "PATCH", body: JSON.stringify({ role: event.target.value }) }); await teamQuery.refetch(); }}><option>Member</option><option>Manager</option></select>}{(session.workspace?.role === "Admin" || (session.workspace?.role === "Manager" && member.role === "Member") || user?._id === session.user?.id) && member.role !== "Admin" && <button className="text-button member-remove" onClick={async () => { if (!window.confirm(`Remove ${user?.name ?? "this member"} from the workspace?`)) return; await apiRequest(`/workspaces/${workspaceId}/team/members/${member._id}`, { method: "DELETE" }); await teamQuery.refetch(); }}>Remove</button>}</div>; })}</div>}
         </section>
+        <section className="surface team-panel"><div className="section-heading"><div><h2>Have an invitation?</h2><p>Paste the one-time invitation token you received to join another workspace.</p></div></div><form className="invite-form" onSubmit={acceptInvite}><input value={acceptInviteToken} onChange={(event) => setAcceptInviteToken(event.target.value)} placeholder="Paste invitation token" required/><button className="primary-button" disabled={!acceptInviteToken.trim()}>Accept invite <ArrowRight size={15}/></button></form>{inviteFeedback && <p className="team-feedback">{inviteFeedback}</p>}</section>
         {session.workspace?.role !== "Member" && <section className="surface team-panel"><div className="section-heading"><div><h2>Invite a teammate</h2><p>Invitations expire after 7 days. Email delivery is not configured yet.</p></div></div><form className="invite-form" onSubmit={sendInvite}><input type="email" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="teammate@company.com" required/><select value={inviteRole} onChange={(event) => setInviteRole(event.target.value as "Manager" | "Member")}><option value="Member">Member</option>{session.workspace?.role === "Admin" && <option value="Manager">Manager</option>}</select><button className="primary-button" disabled={!inviteEmail.trim()}><Plus size={15}/> Create invite</button></form>{inviteToken && <div className="invite-token"><strong>One-time invite token</strong><code>{inviteToken}</code><button className="text-button" onClick={() => void navigator.clipboard.writeText(inviteToken)}>Copy token</button><p>Share this token securely. The invitee must sign in with the invited email and accept it through the invitation API.</p></div>}<div className="pending-invites"><h3>Pending invitations</h3>{(invitationsQuery.data?.invitations ?? []).length === 0 ? <p className="team-empty">No pending invitations.</p> : invitationsQuery.data?.invitations.map((invitation) => <div className="team-row" key={invitation._id}><div className="team-identity"><strong>{invitation.email}</strong><span>Expires {new Date(invitation.expiresAt).toLocaleDateString()}</span></div><span className="role-pill role-member">{invitation.role}</span></div>)}</div></section>}
       </> : activeNav === "Activity" ? <>
         <section className="welcome-row"><div><div className="eyebrow"><span className="live-dot"/> WORKSPACE HISTORY</div><h1>Activity feed <span className="wave">✦</span></h1><p>Recent changes and collaboration across your workspace.</p></div></section>
