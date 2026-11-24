@@ -8,8 +8,8 @@ A multi-tenant team collaboration and project management platform built with Rea
 - In-memory access-token storage, HttpOnly refresh cookie, automatic access-token renewal, hashed refresh-token persistence, rotation, logout revocation, and reuse detection.
 - Workspace-scoped Admin, Manager, and Member authorization.
 - MongoDB models and tenant-scoped APIs for workspaces, projects, tasks, comments, activity logs, notifications, and refresh sessions.
-- Project and task creation, task detail editing (status, priority, assignee, due date), drag-and-drop Kanban board, and task discussion panel with comments.
-- Workspace team screen with member role management, removal, invitation creation/revocation, and invitation acceptance. Activity feed, project portfolio, personal tasks, deadline calendar, drag-and-drop Kanban, global project/task search, workspace creation, and multi-workspace switching screens.
+- Project and task creation, task detail editing (status, priority, assignee, due date), authorized task deletion, drag-and-drop Kanban board, and task discussion panel with comments.
+- Workspace team screen with member role management, removal, invitation creation/revocation, and invitation acceptance. Activity feed, project portfolio, personal tasks, monthly deadline calendar, drag-and-drop Kanban, priority/project task filters, global project/task search, workspace creation, and multi-workspace switching screens.
 - Database-backed workspace metrics, live project/task lists, notification inbox, and Socket.IO workspace events.
 - Dockerfiles for API and frontend, optional full-stack Docker Compose profile, and GitHub Actions CI workflow.
 
@@ -17,9 +17,9 @@ A multi-tenant team collaboration and project management platform built with Rea
 
 This is an actively developed project, not a fully audited production SaaS. Current limitations include:
 - Invitation delivery is manual: no transactional email provider is configured. The UI creates a one-time token to share securely; invitees accept it after signing in with the invited email.
-- Richer calendar month/week views, advanced task filters, and workspace ownership transfer remain to be built.
-- Activity feed API exists; a dedicated activity timeline UI is pending.
-- Dashboard productivity score and a few secondary focus widgets are still presentation placeholders.
+- Workspace ownership transfer remains to be built.
+- The calendar currently provides a navigable month view; drag-and-drop scheduling and week/day views are future enhancements.
+- A few secondary dashboard focus widgets are still presentation placeholders.
 - Automated tests currently cover token helper behavior and workspace role policy; broader API/integration, refresh reuse, cross-tenant isolation, and Socket.IO tests are required.
 - Configure production secrets, HTTPS, managed database/cache, observability, backups, and a full security review before public deployment.
 
@@ -139,7 +139,7 @@ Socket.IO authenticates the access token during connection. Clients must emit `w
 - Assignees must be active members of the same workspace.
 - Managers cannot grant Admin; project archiving requires Admin.
 - Refresh tokens are random opaque values; only SHA-256 hashes are persisted. Rotation revokes the old session, and reuse detection revokes remaining active sessions.
-- Refresh/logout requests require the configured frontend Origin; refresh cookies are HttpOnly and SameSite Strict.
+- All authentication mutations require the configured frontend Origin. Refresh cookies are HttpOnly; local development uses SameSite Strict, while cross-site production deployments use Secure + SameSite=None with strict Origin validation.
 - Request schemas are validated with Zod; Helmet, CORS allowlist, JSON size limit, and API rate limiting are enabled.
 
 Before production, add CSRF/security tests for the exact hosting topology, broader tenant-isolation tests, login-specific brute-force controls, account recovery, email invitation delivery, monitoring, and a full security review.
