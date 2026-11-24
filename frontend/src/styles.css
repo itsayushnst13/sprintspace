@@ -325,3 +325,11 @@ h1{font:800 27px Manrope,sans-serif;letter-spacing:-1.2px;color:#24263b;margin:1
 .workspace-menu button.workspace-create{justify-content:flex-start;gap:7px;border-top:1px solid #f0f0f4;margin-top:4px;color:#6c60d8;font-size:10px;font-weight:700}
 
 .archive-project{margin-top:12px;color:#b46b75;font-size:9px}
+
+.search-panel{position:relative;z-index:35}
+.search-results{position:absolute;top:calc(100% + 8px);left:0;right:0;background:#fff;border:1px solid #ececf2;border-radius:10px;box-shadow:0 14px 35px #20243a18;padding:6px;display:flex;flex-direction:column;max-height:300px;overflow:auto}
+.search-results button{display:flex;align-items:center;gap:9px;padding:9px;border:0;background:transparent;border-radius:7px;text-align:left;color:#7770c9}
+.search-results button:hover{background:#f6f4ff}
+.search-results button span{flex:1;min-width:0;font-size:10px;color:#4d4f63;overflow:hidden;text-overflow:ellipsis}
+.search-results button small{font-size:8px;color:#9a9cab}
+.search-results p{padding:10px;font-size:10px;color:#999bab}
