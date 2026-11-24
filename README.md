@@ -19,7 +19,6 @@ This is an actively developed project, not a fully audited production SaaS. Curr
 - Invitation delivery is manual: no transactional email provider is configured. The UI creates a one-time token to share securely; invitees accept it after signing in with the invited email.
 - Workspace ownership transfer remains to be built.
 - The calendar currently provides a navigable month view; drag-and-drop scheduling and week/day views are future enhancements.
-- A few secondary dashboard focus widgets are still presentation placeholders.
 - Automated tests currently cover token helper behavior and workspace role policy; broader API/integration, refresh reuse, cross-tenant isolation, and Socket.IO tests are required.
 - Configure production secrets, HTTPS, managed database/cache, observability, backups, and a full security review before public deployment.
 
