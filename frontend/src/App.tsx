@@ -49,8 +49,8 @@ function App() {
         session.establish(result.accessToken, result.user, result.workspace);
         const savedWorkspaceId = localStorage.getItem("sprintspace.workspaceId");
         if (savedWorkspaceId) {
-          const result = await apiRequest<{ workspaces: Array<{ id: string; name: string; slug: string; role: string }> }>("/workspaces");
-          const selected = result.workspaces.find((workspace) => workspace.id === savedWorkspaceId);
+          const workspacesResult = await apiRequest<{ workspaces: Array<{ id: string; name: string; slug: string; role: string }> }>("/workspaces");
+          const selected = workspacesResult.workspaces.find((workspace) => workspace.id === savedWorkspaceId);
           if (selected) session.establish(getAccessToken()!, result.user, selected);
         }
       })
