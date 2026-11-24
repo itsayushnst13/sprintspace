@@ -6,10 +6,10 @@ A multi-tenant team collaboration and project management platform built with Rea
 
 - Responsive React dashboard with signup and login.
 - In-memory access-token storage, HttpOnly refresh cookie, automatic access-token renewal, hashed refresh-token persistence, rotation, logout revocation, and reuse detection.
-- Workspace-scoped Admin, Manager, and Member authorization.
+- Workspace-scoped Admin, Manager, and Developer authorization (legacy Member memberships remain compatible).
 - MongoDB models and tenant-scoped APIs for workspaces, projects, tasks, comments, activity logs, notifications, and refresh sessions.
-- Project and task creation, task detail editing (status, priority, assignee, due date), authorized task deletion, drag-and-drop Kanban board, and task discussion panel with comments.
-- Workspace team screen with member role management, removal, invitation creation/revocation, and invitation acceptance. Activity feed, project portfolio, personal tasks, monthly deadline calendar, drag-and-drop Kanban, priority/project task filters, global project/task search, workspace creation, and multi-workspace switching screens.
+- Project and task creation, project-linked task ownership (every new task must have an active Developer assignee), task detail editing (status, priority, assignee, due date), assignee notifications, authorized task deletion, drag-and-drop Kanban board, and task discussion panel with comments.
+- Workspace team screen with member role management, removal, invitation creation/revocation, and invitation acceptance. Clickable activity feed, project detail view with creator/task ownership/completion progress, My Tasks (assigned to or created by the current user), monthly deadline calendar with an unscheduled-task queue, drag-and-drop Kanban, priority/project task filters, global project/task search, workspace creation, role-aware sign-in/workspace selection, and multi-workspace switching.
 - Database-backed workspace metrics, live project/task lists, notification inbox, and Socket.IO workspace events.
 - Dockerfiles for API and frontend, optional full-stack Docker Compose profile, and GitHub Actions CI workflow.
 
