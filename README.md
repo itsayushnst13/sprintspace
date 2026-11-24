@@ -97,7 +97,13 @@ From the repository root:
 docker compose --profile app up --build
 ```
 
-Open http://localhost:8080. The API health endpoint is http://localhost:5001/health.
+If those local ports are already occupied, use alternate ports:
+
+```bash
+MONGO_PORT=27018 REDIS_PORT=6381 API_PORT=5002 WEB_PORT=8081 CLIENT_URL=http://localhost:8081 docker compose --profile app up --build
+```
+
+Open http://localhost:8080 (or http://localhost:8081 for the alternate-port command). The API health endpoint is http://localhost:5001/health.
 
 The Compose profile uses development-only fallback secrets for local convenience. Ports are bound to `127.0.0.1`. Do not use those defaults in a public environment. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
