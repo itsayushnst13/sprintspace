@@ -28,6 +28,7 @@ test("assignees can change status but cannot edit task details", () => {
 
 test("task creators and workspace managers can edit task details", () => {
   assert.equal(canEditTask("Member", true, false, ["title", "description", "dueDate"]), true);
+  assert.equal(canEditTask("Member", true, false, ["assigneeId"]), true);
   assert.equal(canEditTask("Manager", false, false, ["priority", "assigneeId"]), true);
   assert.equal(canEditTask("Admin", false, false, ["title"]), true);
 });
