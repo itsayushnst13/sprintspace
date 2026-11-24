@@ -206,10 +206,14 @@ function App() {
   const projectRows = (projectsQuery.data?.projects ?? []).map((project) => {
     const projectTasks = tasksQuery.data?.tasks.filter((task) => task.projectId === project._id) ?? [];
     const done = projectTasks.filter((task) => task.status === "Done").length;
-    const creator = typeof project.createdBy === "object"
+    const creatorMember = (teamQuery.data?.members ?? []).find((member) => {
+      const memberUserId = typeof member.userId === "object" ? member.userId._id : member.userId;
+      return memberUserId === project.createdBy;
+    });
+    const creatorUser = creatorMember && typeof creatorMember.userId === "object" ? creatorMember.userId : null;
+    const creatorName = typeof project.createdBy === "object"
       ? project.createdBy.name
-      : (teamQuery.data?.members ?? []).find((member) => (typeof member.userId === "object" ? member.userId._id : member.userId) === project.createdBy)?.userId;
-    const creatorName = typeof creator === "string" ? "Workspace member" : creator?.name ?? "Workspace member";
+      : creatorUser?.name ?? "Workspace member";
     return {
       id: project._id, name: project.name, description: project.description ?? "", createdByName: creatorName,
       color: project.color ?? "violet", progress: projectTasks.length ? Math.round((done / projectTasks.length) * 100) : 0,
@@ -436,7 +440,7 @@ function App() {
       method: "PATCH",
       body: JSON.stringify(payload)
     });
-    await Promise.all([tasksQuery.refetch(), analyticsQuery.refetch()]);
+    await Promise.all([tasksQuery.refetch(), myTasksQuery.refetch(), analyticsQuery.refetch(), activityQuery.refetch()]);
   };
   const submitComment = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -455,7 +459,7 @@ function App() {
     {mobileNav && <button className="mobile-scrim" aria-label="Close navigation" onClick={() => setMobileNav(false)} />}
     <aside className={`sidebar ${mobileNav ? "sidebar-open" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
       <div className="brand-lockup"><div className="brand-mark"><Command size={19} strokeWidth={2.5} /></div><span>Sprint<span className="brand-light">Space</span></span><button className="sidebar-collapse-toggle" onClick={toggleSidebar} aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} aria-expanded={!sidebarCollapsed} title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}><ChevronLeft size={18}/></button><button className="icon-button sidebar-close" onClick={() => setMobileNav(false)} aria-label="Close menu"><X size={18} /></button></div>
-      <div className="workspace-switch-wrap"><button className="workspace-switch" onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}><div className="workspace-avatar">{(session.workspace?.name ?? "W").slice(0,1).toUpperCase()}</div><div className="workspace-meta"><strong>{session.workspace?.name ?? "My workspace"}</strong><span>{session.workspace?.role ?? "Workspace member"}</span></div><ChevronDown size={16} className="subtle-icon" /></button>{workspaceMenuOpen && <div className="workspace-menu">{(workspacesQuery.data?.workspaces ?? []).map((workspace) => <button key={workspace.id} className={workspace.id === workspaceId ? "selected" : ""} onClick={() => switchWorkspace(workspace)}><strong>{workspace.name}</strong><span>{workspace.role}</span></button>)}<button className="workspace-create" onClick={() => { setWorkspaceMenuOpen(false); setCreateModal("workspace"); }}><Plus size={13}/> Create workspace</button></div>}</div>
+      <div className="workspace-switch-wrap"><button className="workspace-switch" onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}><div className="workspace-avatar">{(session.workspace?.name ?? "W").slice(0,1).toUpperCase()}</div><div className="workspace-meta"><strong>{session.workspace?.name ?? "My workspace"}</strong><span>{session.workspace?.role === "Member" ? "Developer" : session.workspace?.role ?? "Workspace member"}</span></div><ChevronDown size={16} className="subtle-icon" /></button>{workspaceMenuOpen && <div className="workspace-menu">{(workspacesQuery.data?.workspaces ?? []).map((workspace) => <button key={workspace.id} className={workspace.id === workspaceId ? "selected" : ""} onClick={() => switchWorkspace(workspace)}><strong>{workspace.name}</strong><span>{workspace.role === "Member" ? "Developer" : workspace.role}</span></button>)}<button className="workspace-create" onClick={() => { setWorkspaceMenuOpen(false); setCreateModal("workspace"); }}><Plus size={13}/> Create workspace</button></div>}</div>
       <div className="sidebar-scroll-region">
       <div className="nav-section"><p className="nav-label">WORKSPACE</p><nav>{primaryNav.map(({label,icon:Icon}) => <button key={label} title={label} aria-label={label} className={`nav-item ${activeNav===label?"active":""}`} onClick={()=>{setActiveNav(label);setMobileNav(false);}}><Icon size={19} strokeWidth={1.8}/><span>{label}</span>{label==="My tasks"&&myTaskRows.length>0&&<span className="nav-count">{myTaskRows.length}</span>}</button>)}</nav></div>
       <div className="nav-section projects-nav"><div className="nav-label-row"><p className="nav-label">YOUR PROJECTS</p>{canManageWorkspace && <button className="tiny-icon" aria-label="Add project" onClick={() => setCreateModal("project")}><Plus size={15}/></button>}</div>{projectRows.map((project) => <button className="project-nav-item" key={project.id} title={project.name} onClick={() => openProject(project.id)}><span className={`project-dot dot-${project.color}`}/><span>{project.name}</span></button>)}{canManageWorkspace && <button className="project-nav-item muted-link" title="Add project" aria-label="Add project" onClick={() => setCreateModal("project")}><Plus size={15}/><span>Add project</span></button>}</div>
