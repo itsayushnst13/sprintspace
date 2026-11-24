@@ -21,6 +21,18 @@ teamRouter.get("/members", async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+teamRouter.get("/invitations", async (req, res, next) => {
+  try {
+    if (req.workspaceRole !== "Admin" && req.workspaceRole !== "Manager") {
+      throw new ApiError(403, "Only workspace managers can view pending invitations");
+    }
+    const invitations = await Invitation.find({
+      workspaceId: req.workspaceId, acceptedAt: null, revokedAt: null, expiresAt: { $gt: new Date() }
+    }).select("email role invitedBy expiresAt createdAt").populate("invitedBy", "name email").sort({ createdAt: -1 }).lean();
+    res.json({ invitations });
+  } catch (error) { next(error); }
+});
+
 teamRouter.post("/invitations", async (req, res, next) => {
   try {
     const input = z.object({
@@ -98,12 +110,11 @@ teamRouter.delete("/members/:memberId", async (req, res, next) => {
     const isSelf = target.userId.toString() === req.userId;
     const canRemove = req.workspaceRole === "Admin" ||
       (req.workspaceRole === "Manager" && target.role === "Member") || isSelf;
-    if (!canRemove || target.role === "Admin") {
-      throw new ApiError(403, "You do not have permission to remove this member");
-    }
-    if (isSelf && target.role === "Admin") {
+    if (!canRemove) throw new ApiError(403, "You do not have permission to remove this member");
+    if (target.role === "Admin") {
       const admins = await WorkspaceMember.countDocuments({ workspaceId: req.workspaceId, role: "Admin", status: "active" });
       if (admins <= 1) throw new ApiError(400, "The last workspace admin cannot leave before promoting another admin");
+      if (!isSelf) throw new ApiError(403, "Admins can only remove another admin after ownership is transferred");
     }
     target.status = "suspended";
     await target.save();
