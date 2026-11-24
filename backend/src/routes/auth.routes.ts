@@ -126,7 +126,7 @@ authRouter.post("/refresh", async (req, res, next) => {
       throw new ApiError(401, "Refresh token reuse detected; sign in again", "REFRESH_REUSE");
     }
 
-    const nextToken = randomBytes(48).toString("base64url");
+    const nextToken = createOpaqueRefreshToken();
     const nextHash = hashRefreshToken(nextToken);
     const expiresAt = new Date(Date.now() + env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
     const claimed = await RefreshSession.findOneAndUpdate(
@@ -151,7 +151,7 @@ authRouter.post("/logout", async (req, res, next) => {
     assertTrustedOrigin(req);
     const token = req.cookies?.refreshToken as string | undefined;
     if (token && token.length <= 256) {
-      await RefreshSession.updateOne({ tokenHash: hashToken(token), revokedAt: null }, { $set: { revokedAt: new Date() } });
+      await RefreshSession.updateOne({ tokenHash: hashRefreshToken(token), revokedAt: null }, { $set: { revokedAt: new Date() } });
     }
     res.clearCookie("refreshToken", cookieOptions());
     res.status(204).end();
