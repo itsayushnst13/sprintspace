@@ -58,3 +58,12 @@ export function emitWorkspaceEvent(workspaceId: string, event: string, payload: 
 export function emitUserEvent(userId: string, event: string, payload: unknown): void {
   io?.to(`user:${userId}`).emit(event, payload);
 }
+
+export async function revokeWorkspaceMemberSockets(workspaceId: string, userId: string): Promise<void> {
+  if (!io) return;
+  const sockets = await io.in(`user:${userId}`).fetchSockets();
+  await Promise.all(sockets.map(async (socket) => {
+    await socket.leave(`workspace:${workspaceId}`);
+    socket.emit("workspace:access-revoked", { workspaceId });
+  }));
+}
