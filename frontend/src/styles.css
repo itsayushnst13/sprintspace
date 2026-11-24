@@ -362,3 +362,6 @@ h1{font:800 27px Manrope,sans-serif;letter-spacing:-1.2px;color:#24263b;margin:1
 .calendar-legend .legend-dot.priority-low{background:#69ae91}
 @media(max-width:700px){.calendar-panel{padding:12px}.calendar-day{min-height:74px;padding:4px 3px}.calendar-task-chip{font-size:7px;padding:3px}.calendar-weekday{font-size:8px;padding:8px 2px}.calendar-day-number{font-size:8px;width:18px;height:18px}.calendar-legend{gap:9px}}
 @media(max-width:440px){.calendar-day{min-height:62px}.calendar-task-chip{max-height:26px}.calendar-more{font-size:7px}.calendar-toolbar h2{font-size:12px}}
+
+.danger-button{grid-column:1/-1;justify-self:start;border:1px solid #f1d9dc;background:#fff8f8;color:#bd626d;border-radius:7px;padding:8px 12px;font-size:9px;font-weight:700}
+.danger-button:hover{background:#fff0f1}
