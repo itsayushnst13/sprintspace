@@ -39,10 +39,10 @@ teamRouter.post("/invitations", async (req, res, next) => {
   try {
     const input = z.object({
       email: z.string().trim().email().max(254),
-      role: z.enum(["Manager", "Member"]).default("Member")
+      role: z.enum(["Manager", "Developer", "Member"]).default("Developer")
     }).parse(req.body);
     const role = req.workspaceRole;
-    if (role !== "Admin" && (role !== "Manager" || input.role !== "Member")) {
+    if (role !== "Admin" && (role !== "Manager" || !["Developer", "Member"].includes(input.role))) {
       throw new ApiError(403, "Only admins can invite managers; managers can invite members", "FORBIDDEN");
     }
     const email = input.email.toLowerCase();
@@ -97,7 +97,7 @@ teamRouter.delete("/invitations/:invitationId", async (req, res, next) => {
 teamRouter.patch("/members/:memberId/role", async (req, res, next) => {
   try {
     if (req.workspaceRole !== "Admin") throw new ApiError(403, "Only workspace admins can change member roles");
-    const { role } = z.object({ role: z.enum(["Manager", "Member"]) }).parse(req.body);
+    const { role } = z.object({ role: z.enum(["Manager", "Developer", "Member"]) }).parse(req.body);
     const memberId = (req.params as Record<string, string>)["memberId"];
     const target = await WorkspaceMember.findOne({ _id: memberId, workspaceId: req.workspaceId, status: "active" });
     if (!target) throw new ApiError(404, "Workspace member not found");
@@ -118,7 +118,7 @@ teamRouter.delete("/members/:memberId", async (req, res, next) => {
     if (!target) throw new ApiError(404, "Workspace member not found");
     const isSelf = target.userId.toString() === req.userId;
     const canRemove = req.workspaceRole === "Admin" ||
-      (req.workspaceRole === "Manager" && target.role === "Member") || isSelf;
+      (req.workspaceRole === "Manager" && (target.role === "Member" || target.role === "Developer")) || isSelf;
     if (!canRemove) throw new ApiError(403, "You do not have permission to remove this member");
     if (target.role === "Admin") {
       const admins = await WorkspaceMember.countDocuments({ workspaceId: req.workspaceId, role: "Admin", status: "active" });
