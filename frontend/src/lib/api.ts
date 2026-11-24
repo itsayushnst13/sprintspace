@@ -38,7 +38,7 @@ async function refreshAccessToken(): Promise<string | null> {
   return refreshInFlight;
 }
 
-async function send<T>(path: string, options: RequestInit, token: string | null): Promise<Response> {
+async function send(path: string, options: RequestInit, token: string | null): Promise<Response> {
   const headers = new Headers(options.headers);
   if (options.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
   if (token) headers.set("Authorization", `Bearer ${token}`);
