@@ -70,6 +70,7 @@ async function sessionPayload(userId: string) {
 
 authRouter.post("/register", async (req, res, next) => {
   try {
+    assertTrustedOrigin(req);
     const input = registerSchema.parse(req.body);
     const email = input.email.toLowerCase();
     if (await User.exists({ email })) throw new ApiError(409, "An account with this email already exists", "EMAIL_EXISTS");
@@ -96,6 +97,7 @@ authRouter.post("/register", async (req, res, next) => {
 
 authRouter.post("/login", async (req, res, next) => {
   try {
+    assertTrustedOrigin(req);
     const input = loginSchema.parse(req.body);
     const user = await User.findOne({ email: input.email.toLowerCase() }).select("+passwordHash");
     if (!user || !(await bcrypt.compare(input.password, user.passwordHash))) {
