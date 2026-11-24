@@ -5,7 +5,7 @@ import {
   Activity, Archive, ArrowDown, ArrowRight, ArrowUp, ArrowUpRight, Bell, CalendarDays,
   Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleHelp,
   Clock3, Command, FolderKanban, FolderOpen, LayoutDashboard, ListTodo, LogOut, Menu,
-  Plus, Search, Settings2, Sparkles, Target, Users, X, Zap
+  Plus, Search, Settings2, Target, Users, X, Zap
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { type TaskStatus } from "./data/demo";
