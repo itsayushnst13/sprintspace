@@ -35,6 +35,7 @@ function App() {
   const bootStarted = useRef(false);
   const [socketConnected, setSocketConnected] = useState(false);
   const [activeNav, setActiveNav] = useState("Overview");
+  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [commentDraft, setCommentDraft] = useState("");
   const workspaceId = session.workspace?.id;
@@ -49,6 +50,11 @@ function App() {
       .finally(() => session.markReady());
   }, []);
 
+  const workspacesQuery = useQuery({
+    queryKey: ["user-workspaces"],
+    queryFn: () => apiRequest<{ workspaces: Array<{ id: string; name: string; slug: string; role: string }> }>("/workspaces"),
+    enabled: session.authenticated
+  });
   const analyticsQuery = useQuery({
     queryKey: ["workspace-analytics", workspaceId],
     queryFn: () => apiRequest<AnalyticsResponse>(`/workspaces/${workspaceId}/analytics`),
@@ -162,6 +168,12 @@ function App() {
   if (!session.ready) return <div className="auth-loading"><div className="brand-mark"><Command size={19}/></div><span>Restoring your workspace…</span></div>;
   if (!session.authenticated) return <AuthScreen />;
 
+  const switchWorkspace = (workspace: { id: string; name: string; slug: string; role: string }) => {
+    if (!session.user || !getAccessToken()) return;
+    session.establish(getAccessToken()!, session.user, workspace);
+    setWorkspaceMenuOpen(false);
+    setActiveNav("Overview");
+  };
   const moveTask = async (taskId: string, status: TaskStatus) => {
     await apiRequest(`/workspaces/${workspaceId}/tasks/${taskId}`, {
       method: "PATCH", body: JSON.stringify({ status })
@@ -251,7 +263,7 @@ function App() {
     {mobileNav && <button className="mobile-scrim" aria-label="Close navigation" onClick={() => setMobileNav(false)} />}
     <aside className={`sidebar ${mobileNav ? "sidebar-open" : ""}`}>
       <div className="brand-lockup"><div className="brand-mark"><Command size={19} strokeWidth={2.5} /></div><span>Sprint<span className="brand-light">Space</span></span><button className="icon-button sidebar-close" onClick={() => setMobileNav(false)} aria-label="Close menu"><X size={18} /></button></div>
-      <button className="workspace-switch"><div className="workspace-avatar">N</div><div className="workspace-meta"><strong>{session.workspace?.name ?? "My workspace"}</strong><span>{session.workspace?.role ?? "Workspace member"}</span></div><ChevronDown size={16} className="subtle-icon" /></button>
+      <div className="workspace-switch-wrap"><button className="workspace-switch" onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}><div className="workspace-avatar">{(session.workspace?.name ?? "W").slice(0,1).toUpperCase()}</div><div className="workspace-meta"><strong>{session.workspace?.name ?? "My workspace"}</strong><span>{session.workspace?.role ?? "Workspace member"}</span></div><ChevronDown size={16} className="subtle-icon" /></button>{workspaceMenuOpen && <div className="workspace-menu">{(workspacesQuery.data?.workspaces ?? []).map((workspace) => <button key={workspace.id} className={workspace.id === workspaceId ? "selected" : ""} onClick={() => switchWorkspace(workspace)}><strong>{workspace.name}</strong><span>{workspace.role}</span></button>)}</div>}</div>
       <div className="nav-section"><p className="nav-label">WORKSPACE</p><nav>{primaryNav.map(({label,icon:Icon}) => <button key={label} className={`nav-item ${activeNav===label?"active":""}`} onClick={()=>{setActiveNav(label);setMobileNav(false);}}><Icon size={18} strokeWidth={1.8}/><span>{label}</span>{label==="My tasks"&&<span className="nav-count">8</span>}</button>)}</nav></div>
       <div className="nav-section projects-nav"><div className="nav-label-row"><p className="nav-label">YOUR PROJECTS</p><button className="tiny-icon" aria-label="Add project"><Plus size={15}/></button></div><button className="project-nav-item"><span className="project-dot dot-violet"/>Website redesign</button><button className="project-nav-item"><span className="project-dot dot-blue"/>Mobile app v2.0</button><button className="project-nav-item"><span className="project-dot dot-orange"/>Q4 growth campaign</button><button className="project-nav-item muted-link"><Plus size={14}/>Add project</button></div>
       <div className="sidebar-bottom"><div className="upgrade-card"><div className="upgrade-icon"><Sparkles size={16}/></div><strong>Make teamwork flow</strong><p>Unlock more projects and advanced insights.</p><button onClick={()=>setActiveNav("Settings")}>Explore plans <ArrowRight size={14}/></button></div><button className="nav-item bottom-link" onClick={()=>setActiveNav("Settings")}><Settings2 size={18}/>Settings</button><button className="nav-item bottom-link"><CircleHelp size={18}/>Help & support</button><div className="profile-row"><div className="avatar avatar-profile">{initials}</div><div className="profile-meta"><strong>{session.user?.name}</strong><span>{session.user?.email}</span></div><button className="more-button" onClick={logout} aria-label="Sign out"><LogOut size={16}/></button></div></div>
