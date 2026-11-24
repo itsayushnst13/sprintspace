@@ -8,7 +8,7 @@ import { requireWorkspaceMember } from "../middleware/workspace-access.js";
 import { ApiError } from "../middleware/error-handler.js";
 import { ActivityLog } from "../models/ActivityLog.js";
 import { Notification } from "../models/Notification.js";
-import { emitWorkspaceEvent } from "../realtime/socket.js";
+import { emitUserEvent, emitWorkspaceEvent } from "../realtime/socket.js";
 import { canDeleteTasks } from "../security/permissions.js";
 
 export const taskRouter = Router({ mergeParams: true });
@@ -48,7 +48,7 @@ taskRouter.post("/", async (req, res, next) => {
     emitWorkspaceEvent(req.workspaceId!, "task:created", { task });
     if (task.assigneeId && task.assigneeId.toString() !== req.userId) {
       const notification = await Notification.create({ workspaceId: req.workspaceId, recipientId: task.assigneeId, actorId: req.userId, type: "task_assigned", title: "You were assigned a task", body: task.title, entityType: "task", entityId: task._id });
-      emitWorkspaceEvent(req.workspaceId!, "notification:created", { notification });
+      emitUserEvent(notification.recipientId.toString(), "notification:created", { notification });
     }
     res.status(201).json({ task });
   } catch (error) { next(error); }
