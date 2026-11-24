@@ -75,3 +75,20 @@ Base path: `/api/v1`.
 4. Team membership, comments, and activity.
 5. Realtime events, notifications, and analytics.
 6. Security review, automated tests, and deployment.
+
+
+## Collaboration and realtime
+
+- Comments are scoped by both workspace and task; the task must belong to the active workspace before a comment can be read or created.
+- Activity records store workspace, actor, entity, action, summary, and metadata.
+- Notifications are private to a recipient and workspace; Socket.IO sends notification events to a per-user room, not to the whole workspace room.
+- Workspace events are emitted to authorized workspace rooms after membership is verified at join time.
+- The frontend invalidates TanStack Query caches when task, project, comment, notification, and team events arrive.
+
+## Analytics caching
+
+Workspace analytics are cached in Redis for 30 seconds. Task, project, comment, and membership mutations invalidate the corresponding workspace cache key. Cache invalidation is best-effort; the short TTL bounds stale data if Redis has a transient error.
+
+## Invitations
+
+Invitation tokens are generated from cryptographically secure random bytes. Only SHA-256 token hashes are persisted. Tokens expire after seven days, are one-time use, and acceptance requires an authenticated account whose email exactly matches the invitation email. Email delivery is not configured; the authorized inviter must share the one-time token securely.
