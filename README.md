@@ -9,7 +9,7 @@ A multi-tenant team collaboration and project management platform built with Rea
 - Workspace-scoped Admin, Manager, and Member authorization.
 - MongoDB models and tenant-scoped APIs for workspaces, projects, tasks, comments, activity logs, notifications, and refresh sessions.
 - Project and task creation, task detail editing (status, priority, assignee, due date), drag-and-drop Kanban board, and task discussion panel with comments.
-- Workspace team screen with member role management, removal, invitation creation/revocation, and invitation acceptance. Activity feed, project portfolio, personal tasks, and deadline calendar screens.
+- Workspace team screen with member role management, removal, invitation creation/revocation, and invitation acceptance. Activity feed, project portfolio, personal tasks, deadline calendar, drag-and-drop Kanban, global project/task search, workspace creation, and multi-workspace switching screens.
 - Database-backed workspace metrics, live project/task lists, notification inbox, and Socket.IO workspace events.
 - Dockerfiles for API and frontend, optional full-stack Docker Compose profile, and GitHub Actions CI workflow.
 
@@ -17,7 +17,7 @@ A multi-tenant team collaboration and project management platform built with Rea
 
 This is an actively developed project, not a fully audited production SaaS. Current limitations include:
 - Invitation delivery is manual: no transactional email provider is configured. The UI creates a one-time token to share securely; invitees accept it after signing in with the invited email.
-- Richer calendar month/week views, workspace switching, and advanced task filters remain to be built.
+- Richer calendar month/week views, advanced task filters, and workspace ownership transfer remain to be built.
 - Activity feed API exists; a dedicated activity timeline UI is pending.
 - Dashboard productivity score and a few secondary focus widgets are still presentation placeholders.
 - Automated tests currently cover token helper behavior and workspace role policy; broader API/integration, refresh reuse, cross-tenant isolation, and Socket.IO tests are required.
