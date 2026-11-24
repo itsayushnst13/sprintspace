@@ -32,6 +32,7 @@ taskRouter.get("/", async (req, res, next) => {
     const filter: Record<string, unknown> = { workspaceId: req.workspaceId };
     if (typeof req.query.projectId === "string") filter.projectId = req.query.projectId;
     if (typeof req.query.status === "string") filter.status = req.query.status;
+    if (req.query.mine === "true") filter.$or = [{ createdBy: req.userId }, { assigneeId: req.userId }];
     const tasks = await Task.find(filter).sort({ updatedAt: -1 }).lean();
     res.json({ tasks });
   } catch (error) { next(error); }
