@@ -716,3 +716,172 @@ h1 { font: 700 clamp(30px,2.5vw,37px)/1.15 "Space Grotesk",sans-serif; letter-sp
   .calendar-toolbar h2 { font-size: 17px; }
   .calendar-weekday { font-size: 9px; }
 }
+
+
+/* Readability pass: raise dense UI text to comfortable desktop sizes */
+body { font-size: 15px; }
+.workspace-meta strong,.profile-meta strong { font-size: 14px; }
+.workspace-meta span,.profile-meta span { font-size: 12px; }
+.nav-label { font-size: 11px; letter-spacing: 1.25px; }
+.nav-item { font-size: 15px; }
+.nav-count { font-size: 12px; }
+.project-nav-item { font-size: 14px; }
+.upgrade-card>strong { font-size: 14px; }
+.upgrade-card p { font-size: 12px; }
+.upgrade-card button { font-size: 12px; }
+.breadcrumb { font-size: 14px; }
+.search-trigger { font-size: 13px; }
+.eyebrow { font-size: 12px; }
+.welcome-row p { font-size: 16px; }
+.primary-button { font-size: 14px; }
+.stat-top { font-size: 14px; }
+.stat-change { font-size: 12px; }
+.section-heading h2 { font-size: 19px; }
+.section-heading p { font-size: 13px; }
+.select-button { font-size: 13px; }
+.chart-legend span { font-size: 12px; }
+.focus-score>div:first-child span { font-size: 13px; }
+.focus-row strong { font-size: 13px; }
+.focus-row span,.focus-row em { font-size: 12px; }
+.project-card h3 { font-size: 16px; }
+.project-team { font-size: 12px; }
+.progress-heading,.progress-heading strong { font-size: 12px; }
+.project-footer { font-size: 11px; }
+.text-button { font-size: 13px; }
+.task-table-head { font-size: 11px; }
+.task-table-row { font-size: 13px; }
+.task-title-cell strong,.task-open { font-size: 14px; }
+.task-title-cell span { font-size: 11px; }
+.assignee-cell { font-size: 13px; }
+.priority-pill,.status-pill { font-size: 11px; }
+.due-cell { font-size: 12px; }
+.table-foot { font-size: 11px; }
+.page-footer { font-size: 11px; }
+.team-identity strong { font-size: 15px; }
+.team-identity span { font-size: 13px; }
+.role-pill { font-size: 11px; }
+.team-empty { font-size: 14px; }
+.invite-form input { font-size: 14px; }
+.invite-form select,.member-role-select { font-size: 13px; }
+.invite-token strong { font-size: 13px; }
+.invite-token code { font-size: 13px; }
+.invite-token p { font-size: 12px; }
+.pending-invites h3 { font-size: 14px; }
+.activity-feed-row strong { font-size: 14px; }
+.activity-feed-row p { font-size: 14px; }
+.activity-feed-row time { font-size: 12px; }
+.personal-task-row strong { font-size: 15px; }
+.personal-task-row span { font-size: 13px; }
+.kanban-column-head strong { font-size: 15px; }
+.kanban-column-head>span:last-child { font-size: 12px; }
+.kanban-task-card>span { font-size: 12px; }
+.kanban-task-card small { font-size: 11px; }
+.kanban-empty { font-size: 12px; }
+.calendar-toolbar h2 { font-size: 21px; }
+.calendar-toolbar p { font-size: 13px; }
+.calendar-controls button { font-size: 12px; }
+.calendar-weekday { font-size: 12px; }
+.calendar-day-number { font-size: 12px; }
+.calendar-task-chip { font-size: 11px; }
+.calendar-more { font-size: 11px; }
+.calendar-legend span { font-size: 12px; }
+.popover strong { font-size: 15px; }
+.popover p { font-size: 13px; }
+.notification-item b { font-size: 13px; }
+.notification-item span { font-size: 12px; }
+.search-panel input { font-size: 15px; }
+.search-results button span { font-size: 13px; }
+.search-results button small { font-size: 11px; }
+.comment-modal-head h2 { font-size: 21px; }
+.comment-modal-head span { font-size: 11px; }
+.comment-item strong { font-size: 13px; }
+.comment-item time { font-size: 11px; }
+.comment-item p { font-size: 14px; }
+.comment-empty { font-size: 14px; }
+.comment-form textarea { font-size: 14px; }
+.comment-form .primary-button,.create-form .primary-button { font-size: 14px; }
+.create-form label { font-size: 14px; }
+.create-form input,.create-form select { font-size: 14px; }
+.task-edit-fields label { font-size: 12px; }
+.task-edit-fields select,.task-edit-fields input { font-size: 13px; }
+.danger-button { font-size: 12px; }
+.socket-indicator { font-size: 11px; }
+.search-results p { font-size: 12px; }
+.auth-form-wrap label { font-size: 14px; }
+.auth-switch { font-size: 14px; }
+.auth-switch button { font-size: 14px; }
+.auth-terms { font-size: 12px; }
+
+/* Desktop sidebar collapse/expand control */
+.sidebar-collapse-toggle {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border: 1px solid #3a5366;
+  border-radius: 9px;
+  background: #203b50;
+  color: #d8e6e9;
+  transition: background .18s ease, color .18s ease, transform .18s ease;
+}
+.sidebar-collapse-toggle:hover { background: #2b4b60; color: var(--ss-lime); }
+.sidebar-collapse-toggle svg { transition: transform .2s ease; }
+.sidebar-collapsed .sidebar-collapse-toggle svg { transform: rotate(180deg); }
+.brand-lockup { justify-content: space-between; gap: 8px; }
+.sidebar-collapsed { width: 88px; padding-left: 10px; padding-right: 10px; }
+.sidebar-collapsed .brand-lockup { justify-content: center; gap: 5px; padding: 0; }
+.sidebar-collapsed .brand-lockup > span { display: none; }
+.sidebar-collapsed .brand-mark { width: 35px; height: 35px; flex: 0 0 35px; }
+.sidebar-collapsed .sidebar-collapse-toggle { width: 28px; height: 30px; }
+.sidebar-collapsed .workspace-switch-wrap { margin: 22px 0 23px; }
+.sidebar-collapsed .workspace-switch { justify-content: center; padding: 8px 5px; min-height: 54px; }
+.sidebar-collapsed .workspace-meta,.sidebar-collapsed .workspace-switch > svg { display: none; }
+.sidebar-collapsed .workspace-avatar { width: 36px; height: 36px; }
+.sidebar-collapsed .nav-section { margin-top: 23px; }
+.sidebar-collapsed .nav-label { display: none; }
+.sidebar-collapsed .nav-item { justify-content: center; gap: 0; padding: 0; height: 47px; }
+.sidebar-collapsed .nav-item > span { display: none; }
+.sidebar-collapsed .nav-item.active:before { left: -10px; top: 9px; bottom: 9px; }
+.sidebar-collapsed .projects-nav { margin-top: 25px; }
+.sidebar-collapsed .nav-label-row { justify-content: center; }
+.sidebar-collapsed .nav-label-row .tiny-icon { margin: 0; }
+.sidebar-collapsed .project-nav-item { justify-content: center; gap: 0; padding: 0; height: 42px; font-size: 0; }
+.sidebar-collapsed .project-nav-item > span:not(.project-dot) { display: none; }
+.sidebar-collapsed .project-dot { width: 10px; height: 10px; }
+.sidebar-collapsed .project-nav-item svg { width: 18px; height: 18px; }
+.sidebar-collapsed .upgrade-card { display: none; }
+.sidebar-collapsed .bottom-link { justify-content: center; }
+.sidebar-collapsed .profile-row { justify-content: center; gap: 6px; padding: 14px 0 2px; }
+.sidebar-collapsed .profile-meta { display: none; }
+.sidebar-collapsed .profile-row .more-button { width: 28px; height: 28px; }
+.sidebar-collapsed + .main-panel { margin-left: 88px; }
+.sidebar-collapsed .workspace-menu { left: 72px; right: auto; top: 0; width: 230px; }
+
+/* Tooltips remain available when the navigation rail is collapsed. */
+.sidebar-collapsed .nav-item[title],.sidebar-collapsed .project-nav-item[title] { position: relative; }
+
+/* Keep the mobile drawer full-width and use its existing hamburger/close affordance. */
+@media(max-width:700px) {
+  .sidebar-collapse-toggle { display: none; }
+  .sidebar.sidebar-collapsed { width: 265px; padding: 28px 17px 18px; }
+  .sidebar.sidebar-collapsed .brand-lockup { justify-content: flex-start; gap: 12px; padding: 0 8px; }
+  .sidebar.sidebar-collapsed .brand-lockup > span { display: inline; }
+  .sidebar.sidebar-collapsed .workspace-switch-wrap { margin: 20px 16px 26px; }
+  .sidebar.sidebar-collapsed .workspace-switch { justify-content: flex-start; padding: 11px; }
+  .sidebar.sidebar-collapsed .workspace-meta { display: flex; }
+  .sidebar.sidebar-collapsed .workspace-switch > svg { display: block; }
+  .sidebar.sidebar-collapsed .nav-section { margin-top: 31px; }
+  .sidebar.sidebar-collapsed .nav-label { display: block; }
+  .sidebar.sidebar-collapsed .nav-item { justify-content: flex-start; gap: 13px; padding: 0 13px; }
+  .sidebar.sidebar-collapsed .nav-item > span { display: inline; }
+  .sidebar.sidebar-collapsed .projects-nav { margin-top: 28px; }
+  .sidebar.sidebar-collapsed .nav-label-row { justify-content: space-between; }
+  .sidebar.sidebar-collapsed .project-nav-item { justify-content: flex-start; gap: 10px; padding: 0 11px; height: 39px; font-size: 14px; }
+  .sidebar.sidebar-collapsed .project-nav-item > span:not(.project-dot) { display: inline; }
+  .sidebar.sidebar-collapsed .upgrade-card { display: block; }
+  .sidebar.sidebar-collapsed .bottom-link { justify-content: flex-start; }
+  .sidebar.sidebar-collapsed .profile-row { justify-content: flex-start; gap: 9px; padding: 15px 5px 1px; }
+  .sidebar.sidebar-collapsed .profile-meta { display: flex; }
+  .sidebar.sidebar-collapsed + .main-panel { margin-left: 0; }
+}
