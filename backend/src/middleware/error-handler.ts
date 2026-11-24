@@ -1,4 +1,5 @@
 import type { ErrorRequestHandler, RequestHandler } from "express";
+import { ZodError } from "zod";
 
 export class ApiError extends Error {
   constructor(
@@ -16,13 +17,14 @@ export const notFound: RequestHandler = (_req, res) => {
 
 export const errorHandler: ErrorRequestHandler = (error: unknown, _req, res, _next) => {
   const known = error instanceof ApiError ? error : null;
-  const status = known?.statusCode ?? 500;
-  const message = known?.message ?? "An unexpected error occurred";
+  const invalid = error instanceof ZodError;
+  const status = known?.statusCode ?? (invalid ? 400 : 500);
+  const message = known?.message ?? (invalid ? "Request validation failed" : "An unexpected error occurred");
   if (!known) console.error(error);
 
   res.status(status).json({
     error: {
-      code: known?.code ?? "INTERNAL_SERVER_ERROR",
+      code: known?.code ?? (invalid ? "VALIDATION_ERROR" : "INTERNAL_SERVER_ERROR"),
       message
     }
   });
