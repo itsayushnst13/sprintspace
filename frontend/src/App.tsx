@@ -109,7 +109,7 @@ function App() {
   useEffect(() => {
     if (!session.authenticated || !workspaceId || !getAccessToken()) return;
     const socket = io(import.meta.env.VITE_SOCKET_URL ?? "http://localhost:5001", {
-      auth: { token: getAccessToken() }, transports: ["websocket", "polling"]
+      auth: (callback) => callback({ token: getAccessToken() }), transports: ["websocket", "polling"]
     });
     socket.on("connect", () => {
       setSocketConnected(true);
