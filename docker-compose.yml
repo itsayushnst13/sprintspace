@@ -28,6 +28,45 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    profiles: ["app"]
+    build:
+      context: ./backend
+    container_name: sprintspace-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5001
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:8080}
+      MONGODB_URI: mongodb://mongo:27017/sprintspace
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-local-development-access-secret-change-me-32chars}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-local-development-refresh-secret-change-me-32chars}
+      ACCESS_TOKEN_TTL: 15m
+      REFRESH_TOKEN_TTL_DAYS: 7
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    ports:
+      - "${API_PORT:-5001}:5001"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    profiles: ["app"]
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: /api/v1
+        VITE_SOCKET_URL: ""
+    container_name: sprintspace-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      - backend
+
 volumes:
   sprintspace-mongo-data:
   sprintspace-redis-data:
