@@ -23,6 +23,7 @@ const primaryNav: NavItem[] = [
 type AnalyticsResponse = { metrics: { projects: number; members: number; tasks: number; completedTasks: number; dueIn24Hours: number; completionRate: number }; tasksByStatus: Array<{ _id: string; count: number }> };
 type ProjectRecord = { _id: string; name: string; color?: string; dueDate?: string | null };
 type TaskRecord = { _id: string; title: string; projectId: string; status: TaskStatus; priority: "High" | "Medium" | "Low"; assigneeId?: string | null; dueDate?: string | null };
+type CommentRecord = { _id: string; body: string; createdAt: string; authorId: { name: string } | string };
 
 function App() {
   const session = useSession();
@@ -56,6 +57,11 @@ function App() {
     queryKey: ["workspace-tasks", workspaceId],
     queryFn: () => apiRequest<{ tasks: TaskRecord[] }>(`/workspaces/${workspaceId}/tasks`),
     enabled: session.authenticated && Boolean(workspaceId)
+  });
+  const commentsQuery = useQuery({
+    queryKey: ["task-comments", workspaceId, selectedTaskId],
+    queryFn: () => apiRequest<{ comments: CommentRecord[] }>(`/workspaces/${workspaceId}/tasks/${selectedTaskId}/comments`),
+    enabled: session.authenticated && Boolean(workspaceId) && Boolean(selectedTaskId)
   });
   const notificationsQuery = useQuery({
     queryKey: ["workspace-notifications", workspaceId],
@@ -96,6 +102,8 @@ function App() {
   const [showAll, setShowAll] = useState(false);
   const [taskStatus, setTaskStatus] = useState("All tasks");
   const [checkedTasks, setCheckedTasks] = useState<string[]>([]);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [commentDraft, setCommentDraft] = useState("");
 
   const metrics = analyticsQuery.data?.metrics;
   const chartData = analyticsQuery.data?.tasksByStatus.map((item) => ({ day: item._id, completed: item.count, created: 0 })) ?? weeklyActivity;
@@ -105,7 +113,7 @@ function App() {
     return { id: project._id, name: project.name, team: "Workspace project", color: project.color ?? "violet", progress: projectTasks.length ? Math.round((done / projectTasks.length) * 100) : 0, due: project.dueDate ? new Date(project.dueDate).toLocaleDateString() : "No due date", tasks: `${done}/${projectTasks.length}` };
   });
   const taskRows = (tasksQuery.data?.tasks ?? []).map((task) => ({
-    id: task._id.slice(-6).toUpperCase(), title: task.title,
+    id: task._id.slice(-6).toUpperCase(), taskId: task._id, title: task.title,
     project: projectRows.find((project) => project.id === task.projectId)?.name ?? "Workspace task",
     assignee: task.assigneeId ? task.assigneeId.slice(-6) : "Unassigned",
     initials: task.assigneeId ? "TM" : "—", tone: "sky", priority: task.priority,
@@ -117,6 +125,13 @@ function App() {
   if (!session.authenticated) return <AuthScreen />;
 
   const completeTask = (id: string) => setCheckedTasks((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  const submitComment = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedTaskId || !commentDraft.trim()) return;
+    await apiRequest(`/workspaces/${workspaceId}/tasks/${selectedTaskId}/comments`, { method: "POST", body: JSON.stringify({ body: commentDraft.trim() }) });
+    setCommentDraft("");
+    await commentsQuery.refetch();
+  };
   const logout = async () => {
     await apiRequest<void>("/auth/logout", { method: "POST" }).catch(() => undefined);
     session.clear();
@@ -142,10 +157,11 @@ function App() {
           <div className="surface focus-card"><div className="section-heading"><div><h2>Team focus</h2><p>Your workspace at a glance</p></div><button className="more-button"><MoreHorizontal size={19}/></button></div><div className="focus-score"><div><span>Productivity score</span><strong>86<span>/100</span></strong></div><div className="score-ring"><div><strong>86</strong><small>Great</small></div></div></div><div className="score-track"><span/></div><div className="focus-divider"/><div className="focus-row"><div className="focus-icon violet-soft"><Zap size={16}/></div><div><strong>24 tasks</strong><span>Completed this week</span></div><em className="positive"><ArrowUpRight size={13}/> 18%</em></div><div className="focus-row"><div className="focus-icon green-soft"><Clock3 size={16}/></div><div><strong>6 tasks</strong><span>Due in the next 24 hours</span></div><em className="neutral-em">On track</em></div></div>
         </section>
         <section className="surface projects-card"><div className="section-heading"><div><h2>Projects in progress</h2><p>Keep an eye on what your team is building</p></div><button className="text-button" onClick={()=>setActiveNav("Projects")}>View all projects <ArrowRight size={15}/></button></div><div className="projects-grid">{projectRows.map((project)=><div className="project-card" key={project.id}><div className="project-card-top"><div className={`project-icon ${project.color}`}><FolderKanban size={18}/></div><button className="more-button"><MoreHorizontal size={18}/></button></div><h3>{project.name}</h3><p className="project-team">{project.team}</p><div className="progress-heading"><span>Progress</span><strong>{project.progress}%</strong></div><div className="progress-track"><span className={project.color} style={{width:`${project.progress}%`}}/></div><div className="project-footer"><span><Check size={13}/> {project.tasks} tasks</span><span><CalendarDays size={13}/> {project.due}</span></div></div>)}</div></section>
-        <section className="surface tasks-card"><div className="section-heading task-heading"><div><h2>Recent tasks</h2><p>Stay on top of the latest team updates</p></div><div className="task-actions"><select className="select-button" value={taskStatus} onChange={(event)=>setTaskStatus(event.target.value)}><option>All tasks</option><option>In progress</option><option>In review</option><option>Todo</option><option>Done</option></select><button className="text-button" onClick={()=>setShowAll(!showAll)}>{showAll?"Show less":"View all"} <ArrowRight size={15}/></button></div></div><div className="task-table"><div className="task-table-head"><span>TASK</span><span>ASSIGNEE</span><span>PRIORITY</span><span>STATUS</span><span>DUE DATE</span></div>{visibleTasks.map((task)=><div className="task-table-row" key={task.id}><div className="task-title-cell"><button className={`task-check ${checkedTasks.includes(task.id)?"checked":""}`} onClick={()=>completeTask(task.id)} aria-label={`Mark ${task.id} complete`}>{checkedTasks.includes(task.id)&&<Check size={12}/>}</button><div><strong>{task.title}</strong><span>{task.id} · {task.project}</span></div></div><div className="assignee-cell"><div className={`avatar avatar-tiny ${task.tone}`}>{task.initials}</div><span>{task.assignee}</span></div><div><PriorityPill priority={task.priority}/></div><div><StatusPill status={task.status}/></div><div className="due-cell">{task.due==="Today"?<span className="due-today">{task.due}</span>:task.due}</div></div>)}{visibleTasks.length===0&&<div className="empty-state">No tasks in this status.</div>}</div><div className="table-foot"><span>Showing {visibleTasks.length} of {taskRows.length} tasks</span><div><button className="pagination-button" disabled><ChevronLeft size={15}/></button><button className="pagination-button"><ChevronRight size={15}/></button></div></div></section>
+        <section className="surface tasks-card"><div className="section-heading task-heading"><div><h2>Recent tasks</h2><p>Stay on top of the latest team updates</p></div><div className="task-actions"><select className="select-button" value={taskStatus} onChange={(event)=>setTaskStatus(event.target.value)}><option>All tasks</option><option>In progress</option><option>In review</option><option>Todo</option><option>Done</option></select><button className="text-button" onClick={()=>setShowAll(!showAll)}>{showAll?"Show less":"View all"} <ArrowRight size={15}/></button></div></div><div className="task-table"><div className="task-table-head"><span>TASK</span><span>ASSIGNEE</span><span>PRIORITY</span><span>STATUS</span><span>DUE DATE</span></div>{visibleTasks.map((task)=><div className="task-table-row" key={task.id}><div className="task-title-cell"><button className={`task-check ${checkedTasks.includes(task.id)?"checked":""}`} onClick={()=>completeTask(task.id)} aria-label={`Mark ${task.id} complete`}>{checkedTasks.includes(task.id)&&<Check size={12}/>}</button><div><button className="task-open" onClick={() => setSelectedTaskId(task.taskId)}>{task.title}</button><span>{task.id} · {task.project}</span></div></div><div className="assignee-cell"><div className={`avatar avatar-tiny ${task.tone}`}>{task.initials}</div><span>{task.assignee}</span></div><div><PriorityPill priority={task.priority}/></div><div><StatusPill status={task.status}/></div><div className="due-cell">{task.due==="Today"?<span className="due-today">{task.due}</span>:task.due}</div></div>)}{visibleTasks.length===0&&<div className="empty-state">No tasks in this status.</div>}</div><div className="table-foot"><span>Showing {visibleTasks.length} of {taskRows.length} tasks</span><div><button className="pagination-button" disabled><ChevronLeft size={15}/></button><button className="pagination-button"><ChevronRight size={15}/></button></div></div></section>
         <footer className="page-footer"><span>© 2026 SprintSpace, Inc.</span><span>Made for teams that build great things <span className="footer-star">✦</span></span></footer>
       </div>
     </main>
+    {selectedTaskId && <div className="modal-scrim" onClick={() => setSelectedTaskId(null)}><section className="comment-modal" onClick={(event) => event.stopPropagation()}><div className="comment-modal-head"><div><span>TASK DISCUSSION</span><h2>{taskRows.find((task) => task.taskId === selectedTaskId)?.title ?? "Task comments"}</h2></div><button className="icon-button" onClick={() => setSelectedTaskId(null)} aria-label="Close comments"><X size={18}/></button></div><div className="comment-list">{(commentsQuery.data?.comments ?? []).map((comment) => <article className="comment-item" key={comment._id}><div className="comment-avatar">{typeof comment.authorId === "object" ? comment.authorId.name.slice(0,1).toUpperCase() : "T"}</div><div><strong>{typeof comment.authorId === "object" ? comment.authorId.name : "Teammate"}</strong><time>{new Date(comment.createdAt).toLocaleString()}</time><p>{comment.body}</p></div></article>)}{commentsQuery.isLoading && <p className="comment-empty">Loading discussion…</p>}{!commentsQuery.isLoading && (commentsQuery.data?.comments.length ?? 0)===0 && <p className="comment-empty">No comments yet. Start the conversation.</p>}</div><form className="comment-form" onSubmit={submitComment}><textarea value={commentDraft} onChange={(event) => setCommentDraft(event.target.value)} placeholder="Write a comment…" maxLength={4000}/><button className="primary-button" disabled={!commentDraft.trim()}>Send comment <ArrowRight size={14}/></button></form></section></div>}
   </div>;
 }
 
