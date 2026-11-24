@@ -1,5 +1,6 @@
 import { Router } from "express";
 import mongoose from "mongoose";
+import { redis } from "../config/database.js";
 import { Task } from "../models/Task.js";
 import { Project } from "../models/Project.js";
 import { WorkspaceMember } from "../models/WorkspaceMember.js";
@@ -13,6 +14,12 @@ analyticsRouter.use(requireAuth, requireWorkspaceMember());
 analyticsRouter.get("/", async (req, res, next) => {
   try {
     const workspaceId = req.workspaceId!;
+    const cacheKey = `workspace:${workspaceId}:analytics`;
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      res.json(JSON.parse(cached));
+      return;
+    }
     const [projectCount, memberCount, statusCounts, recentActivity, dueSoon, totalTasks, completedTasks] = await Promise.all([
       Project.countDocuments({ workspaceId, status: "active" }),
       WorkspaceMember.countDocuments({ workspaceId, status: "active" }),
@@ -27,7 +34,7 @@ analyticsRouter.get("/", async (req, res, next) => {
       Task.countDocuments({ workspaceId, status: "Done" })
     ]);
 
-    res.json({
+    const response = {
       metrics: {
         projects: projectCount,
         members: memberCount,
@@ -38,6 +45,8 @@ analyticsRouter.get("/", async (req, res, next) => {
       },
       tasksByStatus: statusCounts,
       recentActivity
-    });
+    };
+    await redis.set(cacheKey, JSON.stringify(response), "EX", 30);
+    res.json(response);
   } catch (error) { next(error); }
 });
