@@ -221,3 +221,36 @@ h1{font:800 27px Manrope,sans-serif;letter-spacing:-1.2px;color:#24263b;margin:1
 .socket-indicator{font-size:9px;color:#42a587;background:#eaf7f1;border-radius:20px;padding:4px 7px;margin-left:8px;white-space:nowrap}
 .auth-loading{min-height:100vh;display:flex;align-items:center;justify-content:center;gap:12px;color:#8e91a2;font-size:12px;background:#fafaff}
 .auth-loading .brand-mark{width:34px;height:34px}
+
+/* Interactive collaboration surfaces */
+.notification-popover{max-height:360px;overflow:auto}
+.notification-item{width:100%;display:flex;flex-direction:column;gap:4px;text-align:left;padding:10px 0;border:0;border-bottom:1px solid #f0f0f4;background:transparent}
+.notification-item b{font-size:10px;color:#45475b}
+.notification-item span{font-size:9px;color:#9093a3;line-height:1.5}
+.notification-item.read{opacity:.55}
+.task-open{border:0;background:transparent;padding:0;text-align:left;color:#505267;font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.task-open:hover{color:#6558e8}
+.modal-scrim{position:fixed;inset:0;z-index:60;background:#20223655;display:grid;place-items:center;padding:20px}
+.comment-modal,.create-modal{width:min(100%,540px);max-height:min(78vh,720px);background:#fff;border:1px solid #ececf2;border-radius:15px;box-shadow:0 25px 80px #16172a35;display:flex;flex-direction:column;overflow:hidden}
+.create-modal{width:min(100%,430px);padding:22px}
+.comment-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;padding:20px 22px;border-bottom:1px solid #f0f0f4}
+.comment-modal-head span{font-size:8px;letter-spacing:1.2px;font-weight:700;color:#8a80e8}
+.comment-modal-head h2{font:750 17px Manrope,sans-serif;color:#292b40;margin:6px 0 0}
+.comment-list{padding:15px 22px;overflow:auto;flex:1;min-height:170px}
+.comment-item{display:flex;gap:10px;padding:12px 0;border-bottom:1px solid #f3f3f6}
+.comment-avatar{width:29px;height:29px;border-radius:50%;background:#eeecff;color:#6c60df;display:grid;place-items:center;font-size:11px;font-weight:700;flex-shrink:0}
+.comment-item>div:last-child{min-width:0;display:grid;grid-template-columns:1fr auto;gap:3px 12px}
+.comment-item strong{font-size:10px;color:#4c4e62}
+.comment-item time{font-size:8px;color:#a1a3b0}
+.comment-item p{grid-column:1/-1;margin:3px 0 0;font-size:11px;line-height:1.6;color:#74788a;white-space:pre-wrap;overflow-wrap:anywhere}
+.comment-empty{font-size:11px;color:#9b9ead;text-align:center;padding:35px 10px}
+.comment-form{padding:14px 22px;border-top:1px solid #f0f0f4;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.comment-form textarea{width:100%;min-height:75px;resize:vertical;border:1px solid #e9e9f0;border-radius:9px;padding:10px;font:11px "DM Sans",sans-serif;color:#414358;outline:0}
+.comment-form textarea:focus,.create-form input:focus,.create-form select:focus{border-color:#9a91ee;box-shadow:0 0 0 3px #786be917}
+.comment-form .primary-button,.create-form .primary-button{padding:9px 12px}
+.create-form{display:flex;flex-direction:column;gap:15px;margin-top:20px}
+.create-form label{display:flex;flex-direction:column;gap:7px;font-size:10px;font-weight:700;color:#55576b}
+.create-form input,.create-form select{height:40px;border:1px solid #e8e8ef;border-radius:8px;padding:0 10px;font-size:11px;color:#44465a;background:#fff;outline:0}
+.create-form .primary-button{justify-content:center;margin-top:4px}
+.create-form .primary-button:disabled,.comment-form .primary-button:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:600px){.comment-modal-head{padding:16px}.comment-list{padding:12px 16px}.comment-form{padding:12px 16px}.create-modal{padding:16px}}
