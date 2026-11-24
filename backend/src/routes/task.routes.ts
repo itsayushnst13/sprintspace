@@ -84,6 +84,9 @@ taskRouter.patch("/:taskId", async (req, res, next) => {
     if (!req.workspaceRole || !canEditTask(req.workspaceRole, isCreator, isAssignee, Object.keys(input) as Array<"title" | "description" | "status" | "priority" | "assigneeId" | "dueDate">)) {
       throw new ApiError(403, "Assignees can update task status; task creators and workspace managers can edit all task fields");
     }
+    if (Object.prototype.hasOwnProperty.call(input, "assigneeId") && !input.assigneeId) {
+      throw new ApiError(400, "A task must stay assigned to a Developer", "ASSIGNEE_REQUIRED");
+    }
     if (input.assigneeId) {
       const assignee = await WorkspaceMember.findOne({
         workspaceId: req.workspaceId, userId: input.assigneeId, status: "active"
