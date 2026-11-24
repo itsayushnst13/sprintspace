@@ -1,4 +1,5 @@
 import { Router } from "express";
+import mongoose from "mongoose";
 import { Task } from "../models/Task.js";
 import { Project } from "../models/Project.js";
 import { WorkspaceMember } from "../models/WorkspaceMember.js";
@@ -16,7 +17,7 @@ analyticsRouter.get("/", async (req, res, next) => {
       Project.countDocuments({ workspaceId, status: "active" }),
       WorkspaceMember.countDocuments({ workspaceId, status: "active" }),
       Task.aggregate([
-        { $match: { workspaceId: new (await import("mongoose")).default.Types.ObjectId(workspaceId) } },
+        { $match: { workspaceId: new mongoose.Types.ObjectId(workspaceId) } },
         { $group: { _id: "$status", count: { $sum: 1 } } }
       ]),
       ActivityLog.find({ workspaceId }).sort({ createdAt: -1 }).limit(8)
