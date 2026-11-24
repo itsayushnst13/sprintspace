@@ -14,9 +14,10 @@ commentsRouter.use(requireAuth, requireWorkspaceMember());
 
 commentsRouter.get("/", async (req, res, next) => {
   try {
-    const task = await Task.exists({ _id: req.params.taskId, workspaceId: req.workspaceId });
+    const taskId = (req.params as Record<string, string>)["taskId"];
+    const task = await Task.exists({ _id: taskId, workspaceId: req.workspaceId });
     if (!task) throw new ApiError(404, "Task not found");
-    const comments = await Comment.find({ taskId: req.params.taskId, workspaceId: req.workspaceId })
+    const comments = await Comment.find({ taskId, workspaceId: req.workspaceId })
       .populate("authorId", "name avatarUrl").sort({ createdAt: 1 }).lean();
     res.json({ comments });
   } catch (error) { next(error); }
@@ -24,8 +25,9 @@ commentsRouter.get("/", async (req, res, next) => {
 
 commentsRouter.post("/", async (req, res, next) => {
   try {
+    const taskId = (req.params as Record<string, string>)["taskId"];
     const { body } = z.object({ body: z.string().trim().min(1).max(4000) }).parse(req.body);
-    const task = await Task.findOne({ _id: req.params.taskId, workspaceId: req.workspaceId });
+    const task = await Task.findOne({ _id: taskId, workspaceId: req.workspaceId });
     if (!task) throw new ApiError(404, "Task not found");
     const comment = await Comment.create({
       workspaceId: req.workspaceId, taskId: task._id, authorId: req.userId, body
@@ -51,7 +53,8 @@ commentsRouter.post("/", async (req, res, next) => {
 
 commentsRouter.delete("/:commentId", async (req, res, next) => {
   try {
-    const comment = await Comment.findOne({ _id: req.params.commentId, workspaceId: req.workspaceId });
+    const commentId = (req.params as Record<string, string>)["commentId"];
+    const comment = await Comment.findOne({ _id: commentId, workspaceId: req.workspaceId });
     if (!comment) throw new ApiError(404, "Comment not found");
     if (comment.authorId.toString() !== req.userId && req.workspaceRole !== "Admin") {
       throw new ApiError(403, "You can only delete your own comments");
@@ -87,8 +90,9 @@ notificationsRouter.get("/", async (req, res, next) => {
 });
 notificationsRouter.patch("/:notificationId/read", async (req, res, next) => {
   try {
+    const notificationId = (req.params as Record<string, string>)["notificationId"];
     const notification = await Notification.findOneAndUpdate({
-      _id: req.params.notificationId, workspaceId: req.workspaceId,
+      _id: notificationId, workspaceId: req.workspaceId,
       recipientId: req.userId, readAt: null
     }, { $set: { readAt: new Date() } }, { new: true });
     if (!notification) throw new ApiError(404, "Unread notification not found");
