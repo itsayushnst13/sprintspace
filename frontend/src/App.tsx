@@ -45,7 +45,15 @@ function App() {
     bootStarted.current = true;
     if (session.authenticated) { session.markReady(); return; }
     apiRequest<{ accessToken: string; user: { id: string; name: string; email: string }; workspace?: { id: string; name: string; slug: string; role?: string } }>("/auth/refresh", { method: "POST" })
-      .then((result) => session.establish(result.accessToken, result.user, result.workspace))
+      .then(async (result) => {
+        session.establish(result.accessToken, result.user, result.workspace);
+        const savedWorkspaceId = localStorage.getItem("sprintspace.workspaceId");
+        if (savedWorkspaceId) {
+          const result = await apiRequest<{ workspaces: Array<{ id: string; name: string; slug: string; role: string }> }>("/workspaces");
+          const selected = result.workspaces.find((workspace) => workspace.id === savedWorkspaceId);
+          if (selected) session.establish(getAccessToken()!, result.user, selected);
+        }
+      })
       .catch(() => undefined)
       .finally(() => session.markReady());
   }, []);
