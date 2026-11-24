@@ -3,6 +3,8 @@ import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
+import mongoose from "mongoose";
+import { redis } from "./config/database.js";
 import { env } from "./config/env.js";
 import { errorHandler, notFound } from "./middleware/error-handler.js";
 import { apiRouter } from "./routes/index.js";
@@ -36,6 +38,19 @@ app.use("/api/v1/auth/register", authAttemptLimiter);
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "sprintspace-api" });
+});
+
+app.get("/ready", async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) throw new Error("MongoDB is not connected");
+    await redis.ping();
+    res.json({ status: "ready", dependencies: { mongodb: "ok", redis: "ok" } });
+  } catch {
+    res.status(503).json({ status: "not_ready", dependencies: {
+      mongodb: mongoose.connection.readyState === 1 ? "ok" : "unavailable",
+      redis: "unavailable"
+    } });
+  }
 });
 
 app.get("/api/v1", (_req, res) => {
