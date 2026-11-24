@@ -21,7 +21,7 @@ const projectInput = z.object({
 
 projectRouter.get("/", async (req, res, next) => {
   try {
-    const projects = await Project.find({ workspaceId: req.workspaceId, status: "active" }).sort({ updatedAt: -1 }).lean();
+    const projects = await Project.find({ workspaceId: req.workspaceId, status: "active" }).populate("createdBy", "name email").sort({ updatedAt: -1 }).lean();
     res.json({ projects });
   } catch (error) { next(error); }
 });
