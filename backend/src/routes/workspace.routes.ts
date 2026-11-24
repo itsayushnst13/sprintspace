@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { Workspace } from "../models/Workspace.js";
 import { WorkspaceMember } from "../models/WorkspaceMember.js";
@@ -28,7 +29,7 @@ workspaceRouter.post("/", async (req, res, next) => {
     const baseSlug = input.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "workspace";
     const workspace = await Workspace.create({
       name: input.name,
-      slug: `${baseSlug}-${Math.random().toString(36).slice(2, 8)}`,
+      slug: `${baseSlug}-${randomBytes(4).toString("hex")}`,
       createdBy: req.userId
     });
     await WorkspaceMember.create({ workspaceId: workspace._id, userId: req.userId, role: "Admin", status: "active" });
