@@ -254,3 +254,38 @@ h1{font:800 27px Manrope,sans-serif;letter-spacing:-1.2px;color:#24263b;margin:1
 .create-form .primary-button{justify-content:center;margin-top:4px}
 .create-form .primary-button:disabled,.comment-form .primary-button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:600px){.comment-modal-head{padding:16px}.comment-list{padding:12px 16px}.comment-form{padding:12px 16px}.create-modal{padding:16px}}
+
+/* Workspace team and activity views */
+.team-page{display:flex;flex-direction:column;gap:18px}
+.team-panel{padding:22px 24px}
+.team-list,.pending-invites{display:flex;flex-direction:column}
+.team-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #f0f0f4;min-width:0}
+.team-row:last-child{border-bottom:0}
+.team-identity{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
+.team-identity strong{font-size:11px;color:#44465a}
+.team-identity span{font-size:9px;color:#9699a8;overflow:hidden;text-overflow:ellipsis}
+.role-pill{font-size:9px;font-weight:700;border-radius:20px;padding:5px 9px;background:#f0efff;color:#6b5ddd;white-space:nowrap}
+.role-admin{background:#f0edff;color:#6b5cdb}
+.role-manager{background:#eaf4ff;color:#347cb5}
+.role-member{background:#eff1f5;color:#737789}
+.team-empty{font-size:11px;color:#9699a8;padding:20px 0}
+.invite-form{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.invite-form input{height:39px;flex:1;min-width:180px;border:1px solid #e8e8ef;border-radius:8px;padding:0 11px;font-size:11px;outline:0}
+.invite-form select,.member-role-select{height:37px;border:1px solid #e8e8ef;border-radius:8px;background:#fff;padding:0 9px;color:#626579;font-size:10px;outline:0}
+.invite-token{margin-top:16px;border:1px solid #e6e2ff;background:#faf9ff;border-radius:9px;padding:13px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.invite-token strong{font-size:10px;color:#4d4c68;width:100%}
+.invite-token code{font-size:10px;overflow-wrap:anywhere;color:#675ad4}
+.invite-token p{width:100%;font-size:9px;color:#88899a;margin:0;line-height:1.5}
+.pending-invites{margin-top:22px;border-top:1px solid #f0f0f4;padding-top:15px}
+.pending-invites h3{font-size:11px;color:#4b4d61;margin:0 0 5px}
+.member-role-select{height:29px;font-size:9px}
+.member-remove{font-size:9px;color:#c36b76}
+.activity-feed{display:flex;flex-direction:column}
+.activity-feed-row{display:flex;align-items:flex-start;gap:12px;padding:15px 0;border-bottom:1px solid #f0f0f4}
+.activity-feed-row:last-child{border-bottom:0}
+.activity-feed-icon{width:30px;height:30px;border-radius:9px;background:#f1efff;color:#7668df;display:grid;place-items:center;flex-shrink:0}
+.activity-feed-row>div:last-child{display:flex;flex-direction:column;gap:4px}
+.activity-feed-row strong{font-size:10px;color:#4b4d61}
+.activity-feed-row p{font-size:11px;color:#707386;margin:0}
+.activity-feed-row time{font-size:9px;color:#a0a2af}
+@media(max-width:620px){.team-panel{padding:16px}.invite-form{align-items:stretch}.invite-form input{flex-basis:100%}.team-row{gap:8px}.member-role-select{max-width:84px}.member-remove{padding:4px}}
