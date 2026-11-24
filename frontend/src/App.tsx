@@ -195,6 +195,8 @@ function App() {
   const [editTaskPriority, setEditTaskPriority] = useState<"Low" | "Medium" | "High">("Medium");
   const [editTaskDueDate, setEditTaskDueDate] = useState("");
   const [editTaskAssignee, setEditTaskAssignee] = useState("");
+  const [saveTaskError, setSaveTaskError] = useState("");
+  const [saveTaskSaving, setSaveTaskSaving] = useState(false);
 
   const taskDueDateKey = (value: string) => value.slice(0, 10);
   const formatTaskDueDate = (value: string) => {
@@ -320,6 +322,7 @@ function App() {
     setEditTaskPriority(task.priority);
     setEditTaskDueDate(task.dueDate ? taskDueDateKey(task.dueDate) : "");
     setEditTaskAssignee(task.assigneeId ?? "");
+    setSaveTaskError("");
   };
   const openProject = (projectId: string) => {
     setSelectedTaskId(null);
