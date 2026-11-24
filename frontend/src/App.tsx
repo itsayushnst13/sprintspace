@@ -29,6 +29,40 @@ type TeamMember = { _id: string; role: "Admin" | "Manager" | "Developer" | "Memb
 type InvitationRecord = { _id: string; email: string; role: "Manager" | "Developer" | "Member"; expiresAt: string };
 type ActivityRecord = { _id: string; summary: string; action: string; createdAt: string; actorId: { name: string } | string; entityType?: "project" | "task" | "comment" | "member"; entityId?: string; metadata?: Record<string, unknown> };
 
+function activityEntityLabel(entityType?: ActivityRecord["entityType"]) {
+  switch (entityType) {
+    case "project": return "Project";
+    case "task": return "Task";
+    case "comment": return "Comment";
+    case "member": return "Team";
+    default: return "Workspace";
+  }
+}
+
+function activityActionIcon(action: string) {
+  if (action.includes("assigned") || action.includes("invited") || action.includes("joined") || action.includes("member")) {
+    return <Users size={19} strokeWidth={2}/>;
+  }
+  if (action.includes("deleted") || action.includes("archived")) {
+    return <Archive size={19} strokeWidth={2}/>;
+  }
+  if (action.includes("created")) {
+    return <Plus size={20} strokeWidth={2.2}/>;
+  }
+  if (action.includes("updated")) {
+    return <CheckCircle2 size={19} strokeWidth={2}/>;
+  }
+  return <Activity size={19} strokeWidth={2}/>;
+}
+
+function formatActivityTimestamp(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(undefined, {
+    day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit"
+  }).format(date);
+}
+
 function App() {
   const session = useSession();
   const queryClient = useQueryClient();
@@ -523,7 +557,19 @@ function App() {
         <section className="surface calendar-panel"><div className="calendar-toolbar"><div><h2>{calendarMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</h2><p>{calendarMonthTaskCount} deadlines this month</p></div><div className="calendar-controls"><button onClick={() => { setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1)); setExpandedCalendarDate(null); }} aria-label="Previous month"><ChevronLeft size={16}/></button><button onClick={() => { setCalendarMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1)); setExpandedCalendarDate(null); }}>Today</button><button onClick={() => { setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1)); setExpandedCalendarDate(null); }} aria-label="Next month"><ChevronRight size={16}/></button></div></div><div className="calendar-grid"><div className="calendar-weekday">Mon</div><div className="calendar-weekday">Tue</div><div className="calendar-weekday">Wed</div><div className="calendar-weekday">Thu</div><div className="calendar-weekday">Fri</div><div className="calendar-weekday">Sat</div><div className="calendar-weekday">Sun</div>{calendarDays.map((day) => { const key = calendarDateKey(day); const dayTasks = calendarRows.filter((task) => task.dueDate && taskDueDateKey(task.dueDate) === key); const inMonth = day.getMonth() === calendarMonth.getMonth(); const isToday = key === calendarDateKey(new Date()); const isExpanded = expandedCalendarDate === key; const visibleDayTasks = isExpanded ? dayTasks : dayTasks.slice(0, 3); return <div className={`calendar-day ${inMonth ? "" : "outside-month"} ${isToday ? "today" : ""}`} key={key}><span className="calendar-day-number">{day.getDate()}</span>{visibleDayTasks.map((task) => <button className={`calendar-task-chip priority-${task.priority.toLowerCase()}`} key={task.taskId} title={task.title} onClick={() => openTask(task.taskId)}>{task.title}</button>)}{dayTasks.length > 3 && <button className="calendar-more calendar-more-toggle" aria-expanded={isExpanded} onClick={() => setExpandedCalendarDate(isExpanded ? null : key)}>{isExpanded ? "Show less" : `+${dayTasks.length - 3} more`}</button>}</div>; })}</div>{calendarMonthTaskCount === 0 && <p className="calendar-empty-note">{calendarRows.length > 0 ? "No task deadlines fall in this month. Use the month arrows to see other scheduled work." : taskRows.length > 0 ? "No deadlines have been set yet. Add a due date to a task below to place it on the calendar." : "No tasks yet. Create a task in a project, then set its due date to see it here."}</p>}{unscheduledTasks.length > 0 && <section className="calendar-unscheduled"><div className="calendar-unscheduled-head"><div><h3>Needs a deadline</h3><p>{unscheduledTasks.length} tasks are not scheduled yet</p></div></div><div className="calendar-unscheduled-list">{unscheduledTasks.map((task) => <button className="calendar-unscheduled-task" key={task.taskId} onClick={() => openTask(task.taskId)}><span><strong>{task.title}</strong><small>{task.project} · {task.assignee === "Unassigned" ? "Unassigned" : `Assigned to ${task.assignee}`}</small></span><span className="calendar-set-date">Set deadline <ArrowRight size={13}/></span></button>)}</div></section>}<div className="calendar-legend"><span><i className="legend-dot priority-high"/>High priority</span><span><i className="legend-dot priority-medium"/>Medium priority</span><span><i className="legend-dot priority-low"/>Low priority</span></div></section>
       </> : activeNav === "Activity" ? <>
         <section className="welcome-row"><div><div className="eyebrow"><span className="live-dot"/> WORKSPACE HISTORY</div><h1>Activity feed <span className="wave">✦</span></h1><p>Recent changes and collaboration across your workspace.</p></div></section>
-        <section className="surface team-panel"><div className="section-heading"><div><h2>Recent activity</h2><p>Latest 50 workspace events</p></div></div>{activityQuery.isLoading ? <p className="team-empty">Loading activity…</p> : (activityQuery.data?.activity ?? []).length === 0 ? <p className="team-empty">No activity yet. Create a project or task to get started.</p> : <div className="activity-feed">{activityQuery.data?.activity.map((item) => <button type="button" className="activity-feed-row activity-feed-button" key={item._id} onClick={() => openActivityItem(item)}><div className="activity-feed-icon"><Activity size={15}/></div><div><strong>{typeof item.actorId === "object" ? item.actorId.name : "A teammate"}</strong><p>{item.summary}</p><time>{new Date(item.createdAt).toLocaleString()}</time></div><ArrowUpRight className="activity-open-icon" size={16}/></button>)}</div>}</section>
+        <section className="surface team-panel"><div className="section-heading"><div><h2>Recent activity</h2><p>Latest 50 workspace events</p></div></div>{activityQuery.isLoading ? <p className="team-empty">Loading activity…</p> : (activityQuery.data?.activity ?? []).length === 0 ? <p className="team-empty">No activity yet. Create a project or task to get started.</p> : <div className="activity-feed">{activityQuery.data?.activity.map((item) => {
+          const actorName = typeof item.actorId === "object" ? item.actorId.name : "A teammate";
+          const entityLabel = activityEntityLabel(item.entityType);
+          return <button type="button" className={`activity-feed-row activity-feed-button activity-event-${item.action.split(".").pop() ?? "event"}`} key={item._id} onClick={() => openActivityItem(item)} aria-label={`Open ${entityLabel.toLowerCase()} activity: ${item.summary}`}>
+            <span className="activity-feed-icon">{activityActionIcon(item.action)}</span>
+            <span className="activity-feed-content">
+              <span className="activity-feed-header"><strong className="activity-feed-actor">{actorName}</strong><time>{formatActivityTimestamp(item.createdAt)}</time></span>
+              <span className="activity-feed-summary">{item.summary}</span>
+              <span className="activity-feed-context"><span className={`activity-entity-tag activity-entity-${item.entityType ?? "workspace"}`}>{entityLabel}</span><span>Open details</span></span>
+            </span>
+            <ArrowUpRight className="activity-open-icon" size={18}/>
+          </button>;
+        })}</div>}</section>
       </> : activeNav === "Settings" ? <>
         <section className="welcome-row"><div><div className="eyebrow"><span className="live-dot"/> ACCOUNT & WORKSPACE</div><h1>Settings <span className="wave">✦</span></h1><p>Review your signed-in account and the workspace role currently active.</p></div></section>
         <section className="surface team-panel settings-panel">
