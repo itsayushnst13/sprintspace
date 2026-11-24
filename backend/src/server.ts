@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { app } from "./app.js";
 import { connectDatabase, redis } from "./config/database.js";
+import mongoose from "mongoose";
 import { env } from "./config/env.js";
 import { attachSocketServer } from "./realtime/socket.js";
 
@@ -15,7 +16,7 @@ async function start(): Promise<void> {
   const shutdown = async (signal: string) => {
     console.info(`${signal} received; closing server`);
     server.close(async () => {
-      await redis.quit().catch(() => undefined);
+      await Promise.allSettled([redis.quit(), mongoose.disconnect()]);
       process.exit(0);
     });
   };
