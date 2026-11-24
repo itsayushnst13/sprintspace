@@ -85,6 +85,7 @@ function App() {
       void queryClient.invalidateQueries({ queryKey: ["workspace-projects", workspaceId] });
       void queryClient.invalidateQueries({ queryKey: ["workspace-tasks", workspaceId] });
       void queryClient.invalidateQueries({ queryKey: ["workspace-notifications", workspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ["task-comments", workspaceId] });
     };
     socket.on("task:created", refreshWorkspaceData);
     socket.on("task:updated", refreshWorkspaceData);
