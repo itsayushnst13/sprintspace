@@ -68,6 +68,7 @@ teamRouter.post("/invitations", async (req, res, next) => {
       workspaceId: req.workspaceId, actorId: req.userId, entityType: "member",
       entityId: invitation._id, action: "member.invited", summary: `Invited ${email} as ${input.role}`
     });
+    await invalidateWorkspaceAnalytics(req.workspaceId!);
     emitWorkspaceEvent(req.workspaceId!, "team:invited", {
       invitation: { id: invitation.id, email: invitation.email, role: invitation.role, expiresAt }
     });
