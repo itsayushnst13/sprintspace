@@ -8,15 +8,16 @@ A multi-tenant team collaboration and project management platform built with Rea
 - In-memory access-token storage, HttpOnly refresh cookie, automatic access-token renewal, hashed refresh-token persistence, rotation, logout revocation, and reuse detection.
 - Workspace-scoped Admin, Manager, and Member authorization.
 - MongoDB models and tenant-scoped APIs for workspaces, projects, tasks, comments, activity logs, notifications, and refresh sessions.
-- Project and task creation from the dashboard; task discussion panel with comments.
+- Project and task creation, task detail editing (status, priority, assignee, due date), and task discussion panel with comments.
+- Workspace team screen with member role management, removal, invitation creation/revocation, and invitation acceptance. Activity feed, project portfolio, personal tasks, and deadline calendar screens.
 - Database-backed workspace metrics, live project/task lists, notification inbox, and Socket.IO workspace events.
 - Dockerfiles for API and frontend, optional full-stack Docker Compose profile, and GitHub Actions CI workflow.
 
 ## Known gaps / production hardening
 
 This is an actively developed project, not a fully audited production SaaS. Current limitations include:
-- Team invitations and complete member/role management UI are not implemented yet.
-- Drag-and-drop Kanban, calendar workflows, and full task editing/assignee selection remain to be built.
+- Invitation delivery is manual: no transactional email provider is configured. The UI creates a one-time token to share securely; invitees accept it after signing in with the invited email.
+- Drag-and-drop Kanban, richer calendar month/week views, workspace switching, and advanced task filters remain to be built.
 - Activity feed API exists; a dedicated activity timeline UI is pending.
 - Dashboard productivity score and a few secondary focus widgets are still presentation placeholders.
 - Automated tests currently cover token helper behavior and workspace role policy; broader API/integration, refresh reuse, cross-tenant isolation, and Socket.IO tests are required.
@@ -119,6 +120,11 @@ Base URL: `/api/v1`. Protected workspace routes require `Authorization: Bearer <
 | GET | `/workspaces/:workspaceId/activity` | Read activity history |
 | GET | `/workspaces/:workspaceId/analytics` | Read workspace metrics |
 | GET | `/workspaces/:workspaceId/notifications` | Read personal workspace notifications |
+| GET | `/workspaces/:workspaceId/team/members` | List active workspace members |
+| GET / POST | `/workspaces/:workspaceId/team/invitations` | List / create pending invitations |
+| DELETE | `/workspaces/:workspaceId/team/invitations/:invitationId` | Revoke a pending invitation |
+| PATCH / DELETE | `/workspaces/:workspaceId/team/members/:memberId` | Change role / remove member |
+| POST | `/invitations/accept` | Accept an invitation using its one-time token |
 | PATCH | `/workspaces/:workspaceId/notifications/:notificationId/read` | Mark notification as read |
 
 ## Realtime events
