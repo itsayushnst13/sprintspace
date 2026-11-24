@@ -1208,3 +1208,279 @@ body { font-size: 15px; }
   line-height: 1.5;
   text-align: center;
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* SprintSpace readable typography pass — shared across every workspace view. */
+/* -------------------------------------------------------------------------- */
+:root {
+  --ss-font-body: 16px;
+  --ss-font-control: 15px;
+  --ss-font-meta: 13px;
+  --ss-font-label: 14px;
+}
+body {
+  font-size: var(--ss-font-body);
+  line-height: 1.55;
+}
+.app-shell {
+  font-size: var(--ss-font-body);
+}
+.app-shell button,
+.app-shell input,
+.app-shell select,
+.app-shell textarea {
+  font-family: inherit;
+}
+.app-shell button:not(.icon-button):not(.tiny-icon):not(.task-check):not(.sidebar-collapse-toggle):not(.pagination-button) {
+  font-size: var(--ss-font-control);
+}
+.app-shell input,
+.app-shell select,
+.app-shell textarea {
+  font-size: var(--ss-font-control);
+}
+
+/* Sidebar and global navigation */
+.brand-lockup { font-size: 23px; }
+.workspace-meta strong,
+.profile-meta strong { font-size: 15px; }
+.workspace-meta span,
+.profile-meta span { font-size: 13px; line-height: 1.4; }
+.nav-label { font-size: 11px; letter-spacing: 1.35px; }
+.nav-item { font-size: 16px; min-height: 48px; }
+.nav-count { font-size: 12px; min-width: 23px; text-align: center; }
+.project-nav-item { font-size: 14px; min-height: 41px; }
+.upgrade-card > strong { font-size: 14px; }
+.upgrade-card p { font-size: 13px; line-height: 1.55; }
+.upgrade-card button { font-size: 13px; }
+.sidebar-shortcuts > strong { font-size: 14px; }
+.sidebar-shortcuts button { font-size: 13px; }
+.bottom-link { font-size: 14px; }
+.topbar { min-height: 68px; }
+.breadcrumb { font-size: 14px; gap: 11px; }
+.search-trigger { font-size: 14px; min-height: 42px; }
+.search-panel input { font-size: 15px; }
+.search-results button { font-size: 14px; }
+.search-results button small { font-size: 12px; }
+.socket-indicator { font-size: 12px; }
+
+/* Page titles, section headings and common buttons */
+.eyebrow { font-size: 12px; line-height: 1.4; letter-spacing: 1.35px; }
+.welcome-row h1 { font-size: clamp(34px, 2.35vw, 42px); line-height: 1.12; }
+.welcome-row p { font-size: 16px; line-height: 1.6; }
+.primary-button,
+.secondary-button,
+.danger-button { font-size: 14px; min-height: 44px; }
+.text-button { font-size: 14px; }
+.section-heading h2 { font-size: 20px; line-height: 1.3; }
+.section-heading p { font-size: 14px; line-height: 1.5; }
+.empty-state,
+.team-empty,
+.comment-empty { font-size: 14px; line-height: 1.55; }
+
+/* Overview cards and charts */
+.stat-top { font-size: 13px; }
+.stat-value { font-size: 29px; }
+.stat-change { font-size: 13px; }
+.chart-legend span { font-size: 12px; }
+.chart-range-label { font-size: 13px; }
+.focus-score > div:first-child span { font-size: 13px; }
+.focus-row strong { font-size: 14px; }
+.focus-row span { font-size: 13px; }
+.focus-row em { font-size: 12px; }
+.overview-period-label { color: #778b99; font-size: 13px; font-weight: 700; }
+
+/* Project cards and project details */
+.project-card h3 { font-size: 18px; line-height: 1.35; }
+.project-team { font-size: 14px; line-height: 1.5; }
+.progress-heading { font-size: 13px; }
+.progress-heading strong { font-size: 13px; }
+.project-footer { font-size: 12px; line-height: 1.4; }
+.project-open-action,
+.project-archive-action { font-size: 13px; }
+.project-detail-description { font-size: 15px; line-height: 1.65; }
+.project-detail-meta span { font-size: 13px; }
+.project-detail-progress strong { font-size: 16px; }
+.project-detail-progress span { font-size: 13px; }
+.project-detail-task-head h3 { font-size: 19px; }
+.project-detail-task-head p { font-size: 13px; }
+.project-detail-task-main strong { font-size: 15px; }
+.project-detail-task-main span { font-size: 13px; }
+.project-detail-task-row > small { font-size: 13px; }
+.project-detail-footer { font-size: 13px; }
+
+/* Task tables and status/priority labels */
+.task-table-head { min-height: 42px; height: auto; font-size: 11px; letter-spacing: .9px; }
+.task-table-row { min-height: 76px; font-size: 14px; }
+.task-title-cell strong { font-size: 15px; line-height: 1.4; }
+.task-title-cell span { font-size: 13px; line-height: 1.4; }
+.task-open { font-size: 15px; line-height: 1.4; }
+.assignee-cell { font-size: 14px; }
+.avatar-tiny { width: 28px; height: 28px; font-size: 11px; }
+.priority-pill,
+.status-pill { font-size: 12px; line-height: 1.35; padding: 7px 10px; border-radius: 8px; }
+.due-cell { font-size: 13px; }
+.table-foot { font-size: 13px; }
+.task-check { width: 19px; height: 19px; }
+
+/* My Tasks: separate title and metadata instead of one cramped text line. */
+.personal-task-list { display: flex; flex-direction: column; }
+.personal-task-row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto minmax(105px, auto);
+  align-items: center;
+  column-gap: 16px;
+  min-height: 82px;
+  padding: 17px 0;
+  border-bottom: 1px solid #edf1f2;
+}
+.personal-task-row > div:nth-child(2) {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+}
+.personal-task-row > div:nth-child(2) strong {
+  display: block;
+  max-width: 100%;
+  color: #294257;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.personal-task-row > div:nth-child(2) span {
+  display: block;
+  max-width: 100%;
+  color: #788c9b;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.personal-task-due { color: #758998; font-size: 13px; white-space: nowrap; }
+
+/* Kanban cards */
+.kanban-column-head { font-size: 15px; }
+.kanban-column-head strong { font-size: 15px; }
+.kanban-task-card .task-open { font-size: 16px; line-height: 1.4; }
+.kanban-task-card > span { font-size: 14px; line-height: 1.45; }
+.kanban-task-card small { font-size: 13px; line-height: 1.4; }
+.kanban-empty { font-size: 13px; }
+.kanban-task-card .priority-pill { font-size: 12px; }
+
+/* Calendar */
+.calendar-toolbar h2 { font-size: 21px; }
+.calendar-toolbar p { font-size: 14px; }
+.calendar-controls button { font-size: 13px; }
+.calendar-weekday { font-size: 12px; letter-spacing: .6px; }
+.calendar-day-number { font-size: 13px; }
+.calendar-task-chip { font-size: 12px; line-height: 1.35; padding: 5px 7px; }
+.calendar-more-toggle { font-size: 12px; }
+.calendar-empty-note { font-size: 14px; line-height: 1.55; }
+.calendar-legend span { font-size: 12px; }
+.calendar-unscheduled-head h3 { font-size: 19px; }
+.calendar-unscheduled-head p { font-size: 14px; }
+.calendar-unscheduled-task strong { font-size: 14px; }
+.calendar-unscheduled-task small { font-size: 13px; }
+.calendar-set-date { font-size: 13px; }
+
+/* Team, invites, activity and notifications */
+.team-identity strong { font-size: 16px; }
+.team-identity span { font-size: 13px; }
+.role-pill { font-size: 12px; line-height: 1.35; padding: 6px 9px; }
+.member-role-select { font-size: 13px; }
+.member-remove { font-size: 13px; }
+.invite-form input,
+.invite-form select { font-size: 15px; min-height: 44px; }
+.invite-token strong { font-size: 14px; }
+.invite-token code { font-size: 13px; overflow-wrap: anywhere; }
+.invite-token p { font-size: 13px; line-height: 1.5; }
+.team-feedback { font-size: 13px; }
+.pending-invites h3 { font-size: 17px; }
+.activity-feed-row strong { font-size: 15px; }
+.activity-feed-row p { font-size: 14px; line-height: 1.55; }
+.activity-feed-row time { font-size: 12px; }
+.notification-popover > strong,
+.popover > strong { font-size: 15px; }
+.notification-item b { font-size: 14px; }
+.notification-item span { font-size: 13px; line-height: 1.5; }
+.popover p { font-size: 13px; line-height: 1.5; }
+
+/* Forms, dialogs, search and authentication */
+.create-form label,
+.task-edit-fields label { font-size: 14px; line-height: 1.4; }
+.create-form input,
+.create-form select,
+.create-form textarea,
+.task-edit-fields input,
+.task-edit-fields select,
+.comment-form textarea { font-size: 15px; min-height: 44px; }
+.task-edit-fields select { min-height: 43px; }
+.create-form textarea,
+.comment-form textarea { line-height: 1.55; }
+.form-error { font-size: 13px; line-height: 1.5; }
+.field-hint { font-size: 13px; line-height: 1.5; }
+.task-self-assignment { font-size: 14px; }
+.comment-modal-head > div > span { font-size: 12px; letter-spacing: 1.2px; }
+.comment-modal-head h2 { font-size: 22px; line-height: 1.3; }
+.comment-item strong { font-size: 14px; }
+.comment-item time { font-size: 12px; }
+.comment-item p { font-size: 14px; line-height: 1.6; }
+.comment-form textarea { font-size: 15px; }
+.comment-form .primary-button { font-size: 14px; }
+.auth-pitch h1 { font-size: clamp(36px, 3.2vw, 48px); line-height: 1.18; }
+.auth-pitch > p { font-size: 15px; line-height: 1.7; }
+.auth-chip,
+.auth-kicker { font-size: 12px; letter-spacing: 1.25px; }
+.auth-form-wrap h2 { font-size: 31px; line-height: 1.2; }
+.auth-description { font-size: 15px; line-height: 1.55; }
+.auth-form-wrap label { font-size: 14px; }
+.auth-input { min-height: 48px; }
+.auth-input input { font-size: 15px; }
+.auth-submit { min-height: 48px; font-size: 15px; }
+.auth-error { font-size: 13px; line-height: 1.5; }
+.auth-switch { font-size: 14px; line-height: 1.5; }
+.auth-switch button { font-size: 14px; }
+.auth-terms { font-size: 12px; line-height: 1.5; }
+.workspace-login-picker label { font-size: 14px; }
+.workspace-login-picker select { font-size: 15px; }
+.workspace-login-picker p { font-size: 13px; }
+.auth-back-button { font-size: 13px; }
+.auth-loading { font-size: 14px; }
+.page-footer { font-size: 12px; }
+
+@media (max-width: 900px) {
+  .personal-task-row {
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    row-gap: 8px;
+  }
+  .personal-task-row .personal-task-due {
+    grid-column: 2 / 3;
+    white-space: normal;
+  }
+}
+@media (max-width: 600px) {
+  :root { --ss-font-body: 15px; --ss-font-control: 14px; }
+  .welcome-row h1 { font-size: 32px; }
+  .welcome-row p { font-size: 14px; }
+  .section-heading h2 { font-size: 18px; }
+  .personal-task-row {
+    grid-template-columns: 21px minmax(0, 1fr);
+    align-items: start;
+    column-gap: 11px;
+    padding: 16px 0;
+  }
+  .personal-task-row > .status-pill,
+  .personal-task-row > .priority-pill {
+    grid-column: 2 / 3;
+    justify-self: start;
+  }
+  .personal-task-row .personal-task-due { grid-column: 2 / 3; }
+  .task-table-head,
+  .task-table-row { font-size: 13px; }
+  .page-footer { flex-direction: column; gap: 8px; }
+}
