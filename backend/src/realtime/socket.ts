@@ -26,6 +26,7 @@ export function attachSocketServer(server: HttpServer): Server {
   });
 
   io.on("connection", (socket) => {
+    void socket.join(`user:${socket.data.userId}`);
     socket.on("workspace:join", async (workspaceId: string, acknowledge?: (result: { ok: boolean; message?: string }) => void) => {
       if (typeof workspaceId !== "string" || !/^[a-f\d]{24}$/i.test(workspaceId)) {
         acknowledge?.({ ok: false, message: "Invalid workspace" });
@@ -48,4 +49,8 @@ export function attachSocketServer(server: HttpServer): Server {
 
 export function emitWorkspaceEvent(workspaceId: string, event: string, payload: unknown): void {
   io?.to(`workspace:${workspaceId}`).emit(event, payload);
+}
+
+export function emitUserEvent(userId: string, event: string, payload: unknown): void {
+  io?.to(`user:${userId}`).emit(event, payload);
 }
