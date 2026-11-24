@@ -39,7 +39,7 @@ projectRouter.post("/", async (req, res, next) => {
 projectRouter.patch("/:projectId", async (req, res, next) => {
   try {
     if (!req.workspaceRole || !canManageProjects(req.workspaceRole)) throw new ApiError(403, "Only admins and managers can update projects");
-    const input = projectInput.partial().parse(req.body);
+    const input = projectInput.partial().refine((value) => Object.keys(value).length > 0, "At least one field is required").parse(req.body);
     const project = await Project.findOneAndUpdate(
       { _id: req.params.projectId, workspaceId: req.workspaceId, status: "active" },
       { $set: input }, { new: true, runValidators: true }
