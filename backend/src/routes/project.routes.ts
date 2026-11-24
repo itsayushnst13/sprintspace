@@ -6,6 +6,7 @@ import { requireWorkspaceMember } from "../middleware/workspace-access.js";
 import { ApiError } from "../middleware/error-handler.js";
 import { ActivityLog } from "../models/ActivityLog.js";
 import { emitWorkspaceEvent } from "../realtime/socket.js";
+import { canArchiveProjects, canManageProjects } from "../security/permissions.js";
 
 export const projectRouter = Router({ mergeParams: true });
 projectRouter.use(requireAuth, requireWorkspaceMember());
@@ -26,7 +27,7 @@ projectRouter.get("/", async (req, res, next) => {
 
 projectRouter.post("/", async (req, res, next) => {
   try {
-    if (!["Admin", "Manager"].includes(req.workspaceRole ?? "")) throw new ApiError(403, "Only admins and managers can create projects");
+    if (!req.workspaceRole || !canManageProjects(req.workspaceRole)) throw new ApiError(403, "Only admins and managers can create projects");
     const input = projectInput.parse(req.body);
     const project = await Project.create({ ...input, workspaceId: req.workspaceId, createdBy: req.userId });
     await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "project", entityId: project._id, action: "project.created", summary: `Created project "${project.name}"` });
@@ -52,7 +53,7 @@ projectRouter.patch("/:projectId", async (req, res, next) => {
 
 projectRouter.delete("/:projectId", async (req, res, next) => {
   try {
-    if (req.workspaceRole !== "Admin") throw new ApiError(403, "Only workspace admins can archive projects");
+    if (!req.workspaceRole || !canArchiveProjects(req.workspaceRole)) throw new ApiError(403, "Only workspace admins can archive projects");
     const project = await Project.findOneAndUpdate(
       { _id: req.params.projectId, workspaceId: req.workspaceId, status: "active" },
       { $set: { status: "archived" } }, { new: true }
