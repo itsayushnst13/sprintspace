@@ -137,6 +137,20 @@ function App() {
     socket.on("team:updated", refreshWorkspaceData);
     socket.on("team:removed", refreshWorkspaceData);
     socket.on("team:joined", refreshWorkspaceData);
+    socket.on("workspace:access-revoked", async () => {
+      const current = useSession.getState();
+      try {
+        const available = await apiRequest<{ workspaces: Array<{ id: string; name: string; slug: string; role: string }> }>("/workspaces");
+        const fallback = available.workspaces[0];
+        if (fallback && current.user && getAccessToken()) current.establish(getAccessToken()!, current.user, fallback);
+        else {
+          await apiRequest<void>("/auth/logout", { method: "POST" }).catch(() => undefined);
+          current.clear();
+        }
+      } catch {
+        current.clear();
+      }
+    });
     return () => { socket.disconnect(); setSocketConnected(false); };
   }, [session.authenticated, workspaceId, queryClient]);
   const [mobileNav, setMobileNav] = useState(false);
