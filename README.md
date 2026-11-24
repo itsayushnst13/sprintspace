@@ -157,7 +157,7 @@ Never commit real credentials or local `.env` files. Use the provided `.env.exam
 
 ## Architecture
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), and the [manual smoke-test checklist](docs/SMOKE_TEST.md).
 
 ## License
 
