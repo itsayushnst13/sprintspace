@@ -6,6 +6,7 @@ test("only Admin and Manager can create or update projects", () => {
   assert.equal(canManageProjects("Admin"), true);
   assert.equal(canManageProjects("Manager"), true);
   assert.equal(canManageProjects("Member"), false);
+  assert.equal(canManageProjects("Developer"), false);
 });
 
 test("only Admin can archive projects", () => {
@@ -18,6 +19,13 @@ test("only Admin and Manager can delete tasks", () => {
   assert.equal(canDeleteTasks("Admin"), true);
   assert.equal(canDeleteTasks("Manager"), true);
   assert.equal(canDeleteTasks("Member"), false);
+  assert.equal(canDeleteTasks("Developer"), false);
+});
+
+test("Developers follow member task permissions", () => {
+  assert.equal(canEditTask("Developer", false, true, ["status"]), true);
+  assert.equal(canEditTask("Developer", false, true, ["priority"]), false);
+  assert.equal(canEditTask("Developer", false, false, ["status"]), false);
 });
 
 test("assignees can change status but cannot edit task details", () => {
