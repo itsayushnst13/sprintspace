@@ -25,7 +25,7 @@ const loginSchema = z.object({
 const cookieOptions = () => ({
   httpOnly: true,
   secure: env.NODE_ENV === "production" || env.COOKIE_SECURE,
-  sameSite: "strict" as const,
+  sameSite: (env.NODE_ENV === "production" ? "none" : "strict") as "none" | "strict",
   path: "/api/v1/auth",
   maxAge: env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000
 });
