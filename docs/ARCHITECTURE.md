@@ -9,7 +9,7 @@ SprintSpace uses a modular monolith. The frontend and API are independently runn
 - Identity: registration, login, refresh, logout, sessions
 - Workspaces: workspace lifecycle and membership
 - Projects: project lifecycle and project-level views
-- Tasks: status, priority, assignment, due dates
+- Tasks: required Developer assignment, status, priority, due dates
 - Collaboration: comments and activity records
 - Notifications: in-app notification lifecycle
 - Analytics: aggregates derived from persisted domain records
@@ -28,9 +28,10 @@ Never trust a workspace ID, role, or assignee supplied by the browser without ve
 
 ## Roles
 
-- Admin: workspace configuration and member/role administration.
-- Manager: manage projects and work assigned within the workspace; cannot grant Admin.
-- Member: collaborate on permitted projects and tasks.
+- Admin: workspace configuration, project administration, invitations, and member/role administration.
+- Manager: create and update projects, invite Developers, assign tasks, and review workspace progress; cannot grant Admin or archive projects.
+- Developer: work on assigned tasks, update their task status, add task comments, and see tasks assigned to or created by them. A Developer cannot manage projects or reassign work to other users.
+- Legacy `Member` memberships remain readable for existing accounts and are treated as Developer access by the current UI/task-assignment flow.
 
 Role checks are based on the membership record for the requested workspace, not a global role property on the user.
 
