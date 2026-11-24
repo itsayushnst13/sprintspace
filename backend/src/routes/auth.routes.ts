@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { createHash, randomBytes } from "node:crypto";
+import { createOpaqueRefreshToken, hashRefreshToken } from "../security/refresh-token.js";
 import { z } from "zod";
 import { User } from "../models/User.js";
 import { Workspace } from "../models/Workspace.js";
@@ -22,10 +22,9 @@ const loginSchema = z.object({
   password: z.string().min(1).max(72)
 });
 
-const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 const cookieOptions = () => ({
   httpOnly: true,
-  secure: env.COOKIE_SECURE,
+  secure: env.NODE_ENV === "production" || env.COOKIE_SECURE,
   sameSite: "strict" as const,
   path: "/api/v1/auth",
   maxAge: env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000
@@ -39,9 +38,9 @@ function issueAccessToken(userId: string): string {
 }
 
 async function createRefreshSession(userId: string): Promise<string> {
-  const token = randomBytes(48).toString("base64url");
+  const token = createOpaqueRefreshToken();
   const expiresAt = new Date(Date.now() + env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
-  await RefreshSession.create({ userId, tokenHash: hashToken(token), expiresAt });
+  await RefreshSession.create({ userId, tokenHash: hashRefreshToken(token), expiresAt });
   return token;
 }
 
@@ -114,7 +113,7 @@ authRouter.post("/refresh", async (req, res, next) => {
     const oldToken = req.cookies?.refreshToken as string | undefined;
     if (!oldToken || oldToken.length > 256) throw new ApiError(401, "Refresh session is missing", "REFRESH_REQUIRED");
 
-    const oldHash = hashToken(oldToken);
+    const oldHash = hashRefreshToken(oldToken);
     const existing = await RefreshSession.findOne({ tokenHash: oldHash }).select("+tokenHash");
     if (!existing || existing.expiresAt <= new Date()) {
       res.clearCookie("refreshToken", cookieOptions());
@@ -128,14 +127,18 @@ authRouter.post("/refresh", async (req, res, next) => {
     }
 
     const nextToken = randomBytes(48).toString("base64url");
-    const nextHash = hashToken(nextToken);
+    const nextHash = hashRefreshToken(nextToken);
     const expiresAt = new Date(Date.now() + env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
     const claimed = await RefreshSession.findOneAndUpdate(
       { _id: existing._id, revokedAt: null, expiresAt: { $gt: new Date() } },
       { $set: { revokedAt: new Date(), replacedByTokenHash: nextHash } },
       { new: true }
     );
-    if (!claimed) throw new ApiError(401, "Refresh session was already used", "REFRESH_REUSE");
+    if (!claimed) {
+      await RefreshSession.updateMany({ userId: existing.userId, revokedAt: null }, { $set: { revokedAt: new Date() } });
+      res.clearCookie("refreshToken", cookieOptions());
+      throw new ApiError(401, "Refresh token reuse detected; sign in again", "REFRESH_REUSE");
+    }
 
     await RefreshSession.create({ userId: existing.userId, tokenHash: nextHash, expiresAt });
     setRefreshCookie(res, nextToken);
