@@ -1484,3 +1484,59 @@ body {
   .task-table-row { font-size: 13px; }
   .page-footer { flex-direction: column; gap: 8px; }
 }
+
+
+/* The entire sidebar is the scroll surface (not just its middle navigation).
+   This keeps Settings, Help and the profile reachable on short viewports too. */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #587287 #14273a;
+}
+.sidebar::-webkit-scrollbar { width: 7px; }
+.sidebar::-webkit-scrollbar-track { background: #14273a; }
+.sidebar::-webkit-scrollbar-thumb {
+  background: #587287;
+  border: 2px solid #14273a;
+  border-radius: 20px;
+}
+.sidebar::-webkit-scrollbar-thumb:hover { background: #7893a4; }
+
+/* Remove nested scrolling so the wheel/touch gesture works from any sidebar area. */
+.sidebar-scroll-region {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  min-height: auto;
+  width: 100%;
+  overflow: visible;
+  padding: 0 2px 12px 0;
+  overscroll-behavior: auto;
+  scrollbar-width: auto;
+}
+.sidebar-bottom {
+  flex: 0 0 auto;
+  margin-top: auto;
+  padding-bottom: 4px;
+}
+.sidebar .brand-lockup,
+.sidebar .workspace-switch-wrap {
+  flex: 0 0 auto;
+}
+@media (max-width: 700px) {
+  .sidebar {
+    height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .sidebar-scroll-region { overflow: visible; }
+}
