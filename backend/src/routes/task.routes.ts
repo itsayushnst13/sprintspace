@@ -43,9 +43,16 @@ taskRouter.post("/", async (req, res, next) => {
     const input = taskInput.parse(req.body);
     const project = await Project.exists({ _id: input.projectId, workspaceId: req.workspaceId, status: "active" });
     if (!project) throw new ApiError(404, "Project not found in this workspace");
-    if (input.assigneeId) {
-      const member = await WorkspaceMember.exists({ workspaceId: req.workspaceId, userId: input.assigneeId, status: "active" });
-      if (!member) throw new ApiError(400, "Assignee must be an active member of this workspace");
+    if (!input.assigneeId) throw new ApiError(400, "Assign this task to a developer before creating it", "ASSIGNEE_REQUIRED");
+    const assignee = await WorkspaceMember.findOne({
+      workspaceId: req.workspaceId, userId: input.assigneeId, status: "active"
+    }).select("role").lean();
+    if (!assignee || (assignee.role !== "Developer" && assignee.role !== "Member")) {
+      throw new ApiError(400, "Choose an active Developer in this workspace", "INVALID_ASSIGNEE");
+    }
+    const canAssignOthers = req.workspaceRole === "Admin" || req.workspaceRole === "Manager";
+    if (!canAssignOthers && input.assigneeId !== req.userId) {
+      throw new ApiError(403, "Developers can create tasks assigned to themselves only", "ASSIGNMENT_FORBIDDEN");
     }
     const task = await Task.create({ ...input, workspaceId: req.workspaceId, createdBy: req.userId });
     await invalidateWorkspaceAnalytics(req.workspaceId!);
@@ -78,8 +85,16 @@ taskRouter.patch("/:taskId", async (req, res, next) => {
       throw new ApiError(403, "Assignees can update task status; task creators and workspace managers can edit all task fields");
     }
     if (input.assigneeId) {
-      const member = await WorkspaceMember.exists({ workspaceId: req.workspaceId, userId: input.assigneeId, status: "active" });
-      if (!member) throw new ApiError(400, "Assignee must be an active member of this workspace");
+      const assignee = await WorkspaceMember.findOne({
+        workspaceId: req.workspaceId, userId: input.assigneeId, status: "active"
+      }).select("role").lean();
+      if (!assignee || (assignee.role !== "Developer" && assignee.role !== "Member")) {
+        throw new ApiError(400, "Choose an active Developer in this workspace", "INVALID_ASSIGNEE");
+      }
+      const canAssignOthers = req.workspaceRole === "Admin" || req.workspaceRole === "Manager";
+      if (!canAssignOthers && input.assigneeId !== req.userId) {
+        throw new ApiError(403, "Developers can only assign tasks to themselves", "ASSIGNMENT_FORBIDDEN");
+      }
     }
     const task = await Task.findOneAndUpdate(
       { _id: req.params.taskId, workspaceId: req.workspaceId },
