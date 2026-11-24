@@ -16,6 +16,8 @@ Use this checklist after starting the application. These are manual runtime chec
 - [ ] Refresh the browser. The session should restore using the HttpOnly refresh cookie.
 - [ ] Sign out and sign back in.
 - [ ] Sign in from a second browser/private window with a different account.
+- [ ] Invite that account to an existing workspace as **Developer**, accept the one-time invite token, sign out and back in, and select the invited workspace.
+- [ ] Confirm the same user sees **Admin** in their own workspace and **Developer** in the invited workspace; refresh and confirm the selected workspace/role is restored.
 - [ ] Confirm passwords never appear in API responses or browser storage.
 - [ ] In browser developer tools, confirm the refresh cookie is HttpOnly and the access token is not persisted in localStorage.
 
@@ -31,10 +33,12 @@ Use this checklist after starting the application. These are manual runtime chec
 
 ## 4. Projects and tasks
 
-- [ ] As Admin, create a project.
+- [ ] As Admin, create a project with a description and optional deadline.
+- [ ] Open the project from its card and the sidebar; confirm creator, deadline, task list, assignees, task creators, statuses, and completion progress are shown.
 - [ ] As Manager, create and edit a project.
-- [ ] As Member, confirm project creation/edit controls are unavailable and API requests are forbidden.
-- [ ] Create tasks with each priority and each workflow status.
+- [ ] As Developer, confirm project creation/archive and inviting other users are unavailable; assigned/created task status is editable.
+- [ ] Create tasks with each priority and each workflow status, always selecting a Developer as owner.
+- [ ] Attempt to create a task without an assignee; confirm the UI prevents it and the API rejects it.
 - [ ] Create a task and choose an active developer in the **Assign to** field.
 - [ ] Confirm the assignee name appears in the task list and Kanban card.
 - [ ] Confirm the assignee sees the task in **My tasks** and receives a notification in the bell menu.
@@ -51,12 +55,14 @@ Use this checklist after starting the application. These are manual runtime chec
 - [ ] Confirm the task assignee receives a notification.
 - [ ] Mark the notification as read and confirm the unread count changes.
 - [ ] Open the Activity page and confirm project, task, comment, and membership events appear.
+- [ ] Click an activity item and confirm it opens its related task/project or the Team view.
 - [ ] Open the same workspace in two browsers and confirm changes trigger realtime refreshes.
 
 ## 6. Calendar and analytics
 
 - [ ] Add due dates to tasks.
 - [ ] Open Calendar and navigate to previous month, current month, and next month.
+- [ ] Confirm tasks without due dates appear under **Needs a deadline** and open to the date editor.
 - [ ] Confirm task chips appear on the matching dates and open the task editor.
 - [ ] Change task status and confirm analytics update after cache invalidation.
 - [ ] Temporarily stop Redis in local development and confirm analytics still fall back to MongoDB.
