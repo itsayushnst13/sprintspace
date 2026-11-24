@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { io } from "socket.io-client";
 import {
   Activity, ArrowDown, ArrowRight, ArrowUp, ArrowUpRight, Bell, CalendarDays,
@@ -8,7 +8,7 @@ import {
   MoreHorizontal, Plus, Search, Settings2, Sparkles, Target, Users, X, Zap
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { projects, tasks, weeklyActivity, type TaskStatus } from "./data/demo";
+import { weeklyActivity, type TaskStatus } from "./data/demo";
 import { useSession } from "./store/session";
 import { AuthScreen } from "./components/AuthScreen";
 import { apiRequest, getAccessToken } from "./lib/api";
@@ -21,9 +21,12 @@ const primaryNav: NavItem[] = [
 ];
 
 type AnalyticsResponse = { metrics: { projects: number; members: number; tasks: number; completedTasks: number; dueIn24Hours: number; completionRate: number }; tasksByStatus: Array<{ _id: string; count: number }> };
+type ProjectRecord = { _id: string; name: string; color?: string; dueDate?: string | null };
+type TaskRecord = { _id: string; title: string; projectId: string; status: TaskStatus; priority: "High" | "Medium" | "Low"; assigneeId?: string | null; dueDate?: string | null };
 
 function App() {
   const session = useSession();
+  const queryClient = useQueryClient();
   const bootStarted = useRef(false);
   const [socketConnected, setSocketConnected] = useState(false);
   const workspaceId = session.workspace?.id;
@@ -44,6 +47,23 @@ function App() {
     enabled: session.authenticated && Boolean(workspaceId)
   });
 
+  const projectsQuery = useQuery({
+    queryKey: ["workspace-projects", workspaceId],
+    queryFn: () => apiRequest<{ projects: ProjectRecord[] }>(`/workspaces/${workspaceId}/projects`),
+    enabled: session.authenticated && Boolean(workspaceId)
+  });
+  const tasksQuery = useQuery({
+    queryKey: ["workspace-tasks", workspaceId],
+    queryFn: () => apiRequest<{ tasks: TaskRecord[] }>(`/workspaces/${workspaceId}/tasks`),
+    enabled: session.authenticated && Boolean(workspaceId)
+  });
+  const notificationsQuery = useQuery({
+    queryKey: ["workspace-notifications", workspaceId],
+    queryFn: () => apiRequest<{ notifications: Array<{ _id: string; title: string; body: string; readAt?: string | null; createdAt: string }>; unreadCount: number }>(`/workspaces/${workspaceId}/notifications`),
+    enabled: session.authenticated && Boolean(workspaceId)
+  });
+
+
   useEffect(() => {
     if (!session.authenticated || !workspaceId || !getAccessToken()) return;
     const socket = io(import.meta.env.VITE_SOCKET_URL ?? "http://localhost:5001", {
@@ -54,12 +74,21 @@ function App() {
       socket.emit("workspace:join", workspaceId);
     });
     socket.on("disconnect", () => setSocketConnected(false));
-    const refreshAnalytics = () => { void analyticsQuery.refetch(); };
-    socket.on("task:created", refreshAnalytics);
-    socket.on("task:updated", refreshAnalytics);
-    socket.on("task:deleted", refreshAnalytics);
+    const refreshWorkspaceData = () => {
+      void queryClient.invalidateQueries({ queryKey: ["workspace-analytics", workspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ["workspace-projects", workspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ["workspace-tasks", workspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ["workspace-notifications", workspaceId] });
+    };
+    socket.on("task:created", refreshWorkspaceData);
+    socket.on("task:updated", refreshWorkspaceData);
+    socket.on("task:deleted", refreshWorkspaceData);
+    socket.on("project:created", refreshWorkspaceData);
+    socket.on("project:updated", refreshWorkspaceData);
+    socket.on("comment:created", refreshWorkspaceData);
+    socket.on("notification:created", refreshWorkspaceData);
     return () => { socket.disconnect(); setSocketConnected(false); };
-  }, [session.authenticated, workspaceId]);
+  }, [session.authenticated, workspaceId, queryClient]);
   const [activeNav, setActiveNav] = useState("Overview");
   const [mobileNav, setMobileNav] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -67,13 +96,25 @@ function App() {
   const [showAll, setShowAll] = useState(false);
   const [taskStatus, setTaskStatus] = useState("All tasks");
   const [checkedTasks, setCheckedTasks] = useState<string[]>([]);
-  const visibleTasks = useMemo(() => tasks.filter((task) => taskStatus === "All tasks" || task.status === taskStatus).slice(0, showAll ? tasks.length : 4), [taskStatus, showAll]);
 
   if (!session.ready) return <div className="auth-loading"><div className="brand-mark"><Command size={19}/></div><span>Restoring your workspace…</span></div>;
   if (!session.authenticated) return <AuthScreen />;
 
   const metrics = analyticsQuery.data?.metrics;
   const chartData = analyticsQuery.data?.tasksByStatus.map((item) => ({ day: item._id, completed: item.count, created: 0 })) ?? weeklyActivity;
+  const projectRows = (projectsQuery.data?.projects ?? []).map((project) => {
+    const projectTasks = tasksQuery.data?.tasks.filter((task) => task.projectId === project._id) ?? [];
+    const done = projectTasks.filter((task) => task.status === "Done").length;
+    return { id: project._id, name: project.name, team: "Workspace project", color: project.color ?? "violet", progress: projectTasks.length ? Math.round((done / projectTasks.length) * 100) : 0, due: project.dueDate ? new Date(project.dueDate).toLocaleDateString() : "No due date", tasks: `${done}/${projectTasks.length}` };
+  });
+  const taskRows = (tasksQuery.data?.tasks ?? []).map((task) => ({
+    id: task._id.slice(-6).toUpperCase(), title: task.title,
+    project: projectRows.find((project) => project.id === task.projectId)?.name ?? "Workspace task",
+    assignee: task.assigneeId ? task.assigneeId.slice(-6) : "Unassigned",
+    initials: task.assigneeId ? "TM" : "—", tone: "sky", priority: task.priority,
+    status: task.status, due: task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No due date"
+  }));
+  const visibleTasks = useMemo(() => taskRows.filter((task) => taskStatus === "All tasks" || task.status === taskStatus).slice(0, showAll ? taskRows.length : 5), [taskRows, taskStatus, showAll]);
 
   const completeTask = (id: string) => setCheckedTasks((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   const logout = async () => {
@@ -97,11 +138,11 @@ function App() {
       <div className="content-wrap">
         <section className="welcome-row"><div><div className="eyebrow"><span className="live-dot"/> YOUR WORKSPACE</div><h1>Good morning, {session.user?.name.split(" ")[0]??"there"} <span className="wave">✦</span></h1><p>Here's what's happening across your workspace today.</p></div><button className="primary-button" onClick={()=>setActiveNav("Projects")}><Plus size={17}/> Create new project</button></section>
         <section className="stats-grid"><StatCard title="Total projects" value={metrics?.projects.toString() ?? "—"} change="Live workspace data" icon={<FolderKanban size={18}/>} tone="violet"/><StatCard title="Tasks completed" value={metrics?.completedTasks.toString() ?? "—"} change={`${metrics?.tasks ?? 0} total tasks`} icon={<CheckCircle2 size={18}/>} tone="green"/><StatCard title="Team members" value={metrics?.members.toString() ?? "—"} change="Active memberships" icon={<Users size={18}/>} tone="blue"/><StatCard title="Completion rate" value={`${metrics?.completionRate ?? 0}%`} change={`${metrics?.dueIn24Hours ?? 0} due in 24 hours`} icon={<Target size={18}/>} tone="orange"/></section>
-        <section className="overview-grid"><div className="surface activity-card"><div className="section-heading"><div><h2>Task status snapshot</h2><p>Live task counts from this workspace</p></div><button className="select-button">This week <ChevronDown size={14}/></button></div><div className="chart-legend"><span><i className="legend-dot completed-dot"/>Completed</span><span><i className="legend-dot created-dot"/>Created</span></div><div className="chart-wrap"><ResponsiveContainer width="100%" height="100%"><AreaChart data={chartData} margin={{top:10,right:5,left:-20,bottom:0}}><defs><linearGradient id="completedFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#7868ed" stopOpacity={.18}/><stop offset="95%" stopColor="#7868ed" stopOpacity={0}/></linearGradient><linearGradient id="createdFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#51b9a1" stopOpacity={.13}/><stop offset="95%" stopColor="#51b9a1" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#eff0f5" strokeDasharray="4 5" vertical={false}/><XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill:"#9296a8",fontSize:11}} dy={10}/><YAxis axisLine={false} tickLine={false} tick={{fill:"#9296a8",fontSize:11}}/><Tooltip contentStyle={{border:"1px solid #ececf2",borderRadius:12,boxShadow:"0 8px 25px #20243a12",fontSize:12}}/><Area type="monotone" dataKey="created" stroke="#51b9a1" strokeWidth={2} fill="url(#createdFill)"/><Area type="monotone" dataKey="completed" stroke="#7868ed" strokeWidth={2.5} fill="url(#completedFill)"/></AreaChart></ResponsiveContainer></div></div>
+        <section className="overview-grid"><div className="surface activity-card"><div className="section-heading"><div><h2>Task status snapshot</h2><p>Live task counts from this workspace</p></div><button className="select-button">This week <ChevronDown size={14}/></button></div><div className="chart-legend"><span><i className="legend-dot completed-dot"/>Completed</span><span><i className="legend-dot created-dot"/>Created</span></div><div className="chart-wrap"><ResponsiveContainer width="100%" height="100%"><AreaChart data={chartData} margin={{top:10,right:5,left:-20,bottom:0}}><defs><linearGradient id="completedFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#7868ed" stopOpacity={.18}/><stop offset="95%" stopColor="#7868ed" stopOpacity={0}/></linearGradient><linearGradient id="createdFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#51b9a1" stopOpacity={.13}/><stop offset="95%" stopColor="#51b9a1" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#eff0f5" strokeDasharray="4 5" vertical={false}/><XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill:"#9296a8",fontSize:11}} dy={10}/><YAxis axisLine={false} tickLine={false} tick={{fill:"#9296a8",fontSize:11}}/><Tooltip contentStyle={{border:"1px solid #ececf2",borderRadius:12,boxShadow:"0 8px 25px #20243a12",fontSize:12}}/><Area type="monotone" dataKey="completed" stroke="#7868ed" strokeWidth={2.5} fill="url(#completedFill)"/></AreaChart></ResponsiveContainer></div></div>
           <div className="surface focus-card"><div className="section-heading"><div><h2>Team focus</h2><p>Your workspace at a glance</p></div><button className="more-button"><MoreHorizontal size={19}/></button></div><div className="focus-score"><div><span>Productivity score</span><strong>86<span>/100</span></strong></div><div className="score-ring"><div><strong>86</strong><small>Great</small></div></div></div><div className="score-track"><span/></div><div className="focus-divider"/><div className="focus-row"><div className="focus-icon violet-soft"><Zap size={16}/></div><div><strong>24 tasks</strong><span>Completed this week</span></div><em className="positive"><ArrowUpRight size={13}/> 18%</em></div><div className="focus-row"><div className="focus-icon green-soft"><Clock3 size={16}/></div><div><strong>6 tasks</strong><span>Due in the next 24 hours</span></div><em className="neutral-em">On track</em></div></div>
         </section>
-        <section className="surface projects-card"><div className="section-heading"><div><h2>Projects in progress</h2><p>Keep an eye on what your team is building</p></div><button className="text-button" onClick={()=>setActiveNav("Projects")}>View all projects <ArrowRight size={15}/></button></div><div className="projects-grid">{projects.map((project)=><div className="project-card" key={project.id}><div className="project-card-top"><div className={`project-icon ${project.color}`}><FolderKanban size={18}/></div><button className="more-button"><MoreHorizontal size={18}/></button></div><h3>{project.name}</h3><p className="project-team">{project.team}</p><div className="progress-heading"><span>Progress</span><strong>{project.progress}%</strong></div><div className="progress-track"><span className={project.color} style={{width:`${project.progress}%`}}/></div><div className="project-footer"><span><Check size={13}/> {project.tasks} tasks</span><span><CalendarDays size={13}/> {project.due}</span></div></div>)}</div></section>
-        <section className="surface tasks-card"><div className="section-heading task-heading"><div><h2>Recent tasks</h2><p>Stay on top of the latest team updates</p></div><div className="task-actions"><select className="select-button" value={taskStatus} onChange={(event)=>setTaskStatus(event.target.value)}><option>All tasks</option><option>In progress</option><option>In review</option><option>Todo</option><option>Done</option></select><button className="text-button" onClick={()=>setShowAll(!showAll)}>{showAll?"Show less":"View all"} <ArrowRight size={15}/></button></div></div><div className="task-table"><div className="task-table-head"><span>TASK</span><span>ASSIGNEE</span><span>PRIORITY</span><span>STATUS</span><span>DUE DATE</span></div>{visibleTasks.map((task)=><div className="task-table-row" key={task.id}><div className="task-title-cell"><button className={`task-check ${checkedTasks.includes(task.id)?"checked":""}`} onClick={()=>completeTask(task.id)} aria-label={`Mark ${task.id} complete`}>{checkedTasks.includes(task.id)&&<Check size={12}/>}</button><div><strong>{task.title}</strong><span>{task.id} · {task.project}</span></div></div><div className="assignee-cell"><div className={`avatar avatar-tiny ${task.tone}`}>{task.initials}</div><span>{task.assignee}</span></div><div><PriorityPill priority={task.priority}/></div><div><StatusPill status={task.status}/></div><div className="due-cell">{task.due==="Today"?<span className="due-today">{task.due}</span>:task.due}</div></div>)}{visibleTasks.length===0&&<div className="empty-state">No tasks in this status.</div>}</div><div className="table-foot"><span>Showing {visibleTasks.length} of {tasks.length} demo tasks</span><div><button className="pagination-button" disabled><ChevronLeft size={15}/></button><button className="pagination-button"><ChevronRight size={15}/></button></div></div></section>
+        <section className="surface projects-card"><div className="section-heading"><div><h2>Projects in progress</h2><p>Keep an eye on what your team is building</p></div><button className="text-button" onClick={()=>setActiveNav("Projects")}>View all projects <ArrowRight size={15}/></button></div><div className="projects-grid">{projectRows.map((project)=><div className="project-card" key={project.id}><div className="project-card-top"><div className={`project-icon ${project.color}`}><FolderKanban size={18}/></div><button className="more-button"><MoreHorizontal size={18}/></button></div><h3>{project.name}</h3><p className="project-team">{project.team}</p><div className="progress-heading"><span>Progress</span><strong>{project.progress}%</strong></div><div className="progress-track"><span className={project.color} style={{width:`${project.progress}%`}}/></div><div className="project-footer"><span><Check size={13}/> {project.tasks} tasks</span><span><CalendarDays size={13}/> {project.due}</span></div></div>)}</div></section>
+        <section className="surface tasks-card"><div className="section-heading task-heading"><div><h2>Recent tasks</h2><p>Stay on top of the latest team updates</p></div><div className="task-actions"><select className="select-button" value={taskStatus} onChange={(event)=>setTaskStatus(event.target.value)}><option>All tasks</option><option>In progress</option><option>In review</option><option>Todo</option><option>Done</option></select><button className="text-button" onClick={()=>setShowAll(!showAll)}>{showAll?"Show less":"View all"} <ArrowRight size={15}/></button></div></div><div className="task-table"><div className="task-table-head"><span>TASK</span><span>ASSIGNEE</span><span>PRIORITY</span><span>STATUS</span><span>DUE DATE</span></div>{visibleTasks.map((task)=><div className="task-table-row" key={task.id}><div className="task-title-cell"><button className={`task-check ${checkedTasks.includes(task.id)?"checked":""}`} onClick={()=>completeTask(task.id)} aria-label={`Mark ${task.id} complete`}>{checkedTasks.includes(task.id)&&<Check size={12}/>}</button><div><strong>{task.title}</strong><span>{task.id} · {task.project}</span></div></div><div className="assignee-cell"><div className={`avatar avatar-tiny ${task.tone}`}>{task.initials}</div><span>{task.assignee}</span></div><div><PriorityPill priority={task.priority}/></div><div><StatusPill status={task.status}/></div><div className="due-cell">{task.due==="Today"?<span className="due-today">{task.due}</span>:task.due}</div></div>)}{visibleTasks.length===0&&<div className="empty-state">No tasks in this status.</div>}</div><div className="table-foot"><span>Showing {visibleTasks.length} of {taskRows.length} tasks</span><div><button className="pagination-button" disabled><ChevronLeft size={15}/></button><button className="pagination-button"><ChevronRight size={15}/></button></div></div></section>
         <footer className="page-footer"><span>© 2026 SprintSpace, Inc.</span><span>Made for teams that build great things <span className="footer-star">✦</span></span></footer>
       </div>
     </main>
