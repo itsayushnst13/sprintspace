@@ -75,7 +75,8 @@ npm install
 npm run dev
 ```
 
-API health check: http://localhost:5001/health
+API liveness check: http://localhost:5001/health  
+API dependency readiness: http://localhost:5001/ready
 
 In another terminal, run frontend:
 
@@ -98,7 +99,7 @@ docker compose --profile app up --build
 
 Open http://localhost:8080. The API health endpoint is http://localhost:5001/health.
 
-The Compose profile uses development-only fallback secrets for local convenience. Do not use those defaults in a public environment. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+The Compose profile uses development-only fallback secrets for local convenience. Ports are bound to `127.0.0.1`. Do not use those defaults in a public environment. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## API routes
 
@@ -140,7 +141,7 @@ Socket.IO authenticates the access token during connection. Clients must emit `w
 - Managers cannot grant Admin; project archiving requires Admin.
 - Refresh tokens are random opaque values; only SHA-256 hashes are persisted. Rotation revokes the old session, and reuse detection revokes remaining active sessions.
 - All authentication mutations require the configured frontend Origin. Refresh cookies are HttpOnly; local development uses SameSite Strict, while cross-site production deployments use Secure + SameSite=None with strict Origin validation.
-- Request schemas are validated with Zod; Helmet, CORS allowlist, JSON size limit, and API rate limiting are enabled.
+- Request schemas are validated with Zod; Helmet, CORS allowlist, JSON size limit, API rate limiting, trusted-proxy configuration, and readiness checks are enabled.
 
 Before production, add CSRF/security tests for the exact hosting topology, broader tenant-isolation tests, login-specific brute-force controls, account recovery, email invitation delivery, monitoring, and a full security review.
 
