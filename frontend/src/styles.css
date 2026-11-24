@@ -321,3 +321,5 @@ h1{font:800 27px Manrope,sans-serif;letter-spacing:-1.2px;color:#24263b;margin:1
 .workspace-menu span{font-size:9px;color:#999bab}
 
 .notification-count{position:absolute;top:-4px;right:-5px;min-width:15px;height:15px;border-radius:20px;background:#e36f83;color:#fff;font-size:8px;font-weight:700;display:grid;place-items:center;padding:0 3px;border:2px solid #fff}
+
+.workspace-menu button.workspace-create{justify-content:flex-start;gap:7px;border-top:1px solid #f0f0f4;margin-top:4px;color:#6c60d8;font-size:10px;font-weight:700}
