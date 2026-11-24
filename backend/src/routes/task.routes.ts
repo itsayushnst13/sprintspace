@@ -76,6 +76,16 @@ taskRouter.patch("/:taskId", async (req, res, next) => {
     if (!task) throw new ApiError(404, "Task not found");
     await invalidateWorkspaceAnalytics(req.workspaceId!);
     await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "task", entityId: task._id, action: "task.updated", summary: `Updated task "${task.title}"`, metadata: input });
+    const previousAssignee = existingTask.assigneeId?.toString() ?? null;
+    const currentAssignee = task.assigneeId?.toString() ?? null;
+    if (currentAssignee && currentAssignee !== previousAssignee && currentAssignee !== req.userId) {
+      const notification = await Notification.create({
+        workspaceId: req.workspaceId, recipientId: task.assigneeId, actorId: req.userId,
+        type: "task_assigned", title: "You were assigned a task", body: task.title,
+        entityType: "task", entityId: task._id
+      });
+      emitUserEvent(currentAssignee, "notification:created", { notification });
+    }
     emitWorkspaceEvent(req.workspaceId!, "task:updated", { task });
     res.json({ task });
   } catch (error) { next(error); }
