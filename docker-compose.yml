@@ -4,7 +4,7 @@ services:
     container_name: sprintspace-mongo
     restart: unless-stopped
     ports:
-      - "${MONGO_PORT:-27017}:27017"
+      - "127.0.0.1:${MONGO_PORT:-27017}:27017"
     volumes:
       - sprintspace-mongo-data:/data/db
     healthcheck:
@@ -19,7 +19,7 @@ services:
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "${REDIS_PORT:-6380}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6380}:6379"
     volumes:
       - sprintspace-redis-data:/data
     healthcheck:
@@ -47,7 +47,7 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       TRUST_PROXY: "1"
     ports:
-      - "${API_PORT:-5001}:5001"
+      - "127.0.0.1:${API_PORT:-5001}:5001"
     depends_on:
       mongo:
         condition: service_healthy
@@ -70,7 +70,7 @@ services:
     container_name: sprintspace-web
     restart: unless-stopped
     ports:
-      - "${WEB_PORT:-8080}:80"
+      - "127.0.0.1:${WEB_PORT:-8080}:80"
     depends_on:
       backend:
         condition: service_healthy
