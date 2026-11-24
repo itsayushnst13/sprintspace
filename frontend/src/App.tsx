@@ -97,9 +97,6 @@ function App() {
   const [taskStatus, setTaskStatus] = useState("All tasks");
   const [checkedTasks, setCheckedTasks] = useState<string[]>([]);
 
-  if (!session.ready) return <div className="auth-loading"><div className="brand-mark"><Command size={19}/></div><span>Restoring your workspace…</span></div>;
-  if (!session.authenticated) return <AuthScreen />;
-
   const metrics = analyticsQuery.data?.metrics;
   const chartData = analyticsQuery.data?.tasksByStatus.map((item) => ({ day: item._id, completed: item.count, created: 0 })) ?? weeklyActivity;
   const projectRows = (projectsQuery.data?.projects ?? []).map((project) => {
@@ -115,6 +112,9 @@ function App() {
     status: task.status, due: task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No due date"
   }));
   const visibleTasks = useMemo(() => taskRows.filter((task) => taskStatus === "All tasks" || task.status === taskStatus).slice(0, showAll ? taskRows.length : 5), [taskRows, taskStatus, showAll]);
+
+  if (!session.ready) return <div className="auth-loading"><div className="brand-mark"><Command size={19}/></div><span>Restoring your workspace…</span></div>;
+  if (!session.authenticated) return <AuthScreen />;
 
   const completeTask = (id: string) => setCheckedTasks((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   const logout = async () => {
@@ -133,7 +133,7 @@ function App() {
       <div className="sidebar-bottom"><div className="upgrade-card"><div className="upgrade-icon"><Sparkles size={16}/></div><strong>Make teamwork flow</strong><p>Unlock more projects and advanced insights.</p><button onClick={()=>setActiveNav("Settings")}>Explore plans <ArrowRight size={14}/></button></div><button className="nav-item bottom-link" onClick={()=>setActiveNav("Settings")}><Settings2 size={18}/>Settings</button><button className="nav-item bottom-link"><CircleHelp size={18}/>Help & support</button><div className="profile-row"><div className="avatar avatar-profile">{initials}</div><div className="profile-meta"><strong>{session.user?.name}</strong><span>{session.user?.email}</span></div><button className="more-button" onClick={logout} aria-label="Sign out"><LogOut size={16}/></button></div></div>
     </aside>
     <main className="main-panel">
-      <header className="topbar"><div className="topbar-left"><button className="icon-button mobile-menu" onClick={()=>setMobileNav(true)} aria-label="Open navigation"><Menu size={20}/></button><div className="breadcrumb">Workspace <ChevronRight size={14}/><strong>{activeNav}</strong>{socketConnected && <span className="socket-indicator">● Live</span>}</div></div><div className="topbar-actions"><button className="search-trigger" onClick={()=>setSearchOpen(!searchOpen)}><Search size={16}/><span>Search anything...</span><kbd>⌘ K</kbd></button><div className="popover-wrap"><button className="icon-button notification-button" onClick={()=>setNotificationsOpen(!notificationsOpen)} aria-label="Notifications"><Bell size={18}/><i/></button>{notificationsOpen&&<div className="popover notification-popover"><strong>You're all caught up</strong><p>New project updates will show up here.</p></div>}</div><div className="avatar avatar-small avatar-profile">{initials}</div></div></header>
+      <header className="topbar"><div className="topbar-left"><button className="icon-button mobile-menu" onClick={()=>setMobileNav(true)} aria-label="Open navigation"><Menu size={20}/></button><div className="breadcrumb">Workspace <ChevronRight size={14}/><strong>{activeNav}</strong>{socketConnected && <span className="socket-indicator">● Live</span>}</div></div><div className="topbar-actions"><button className="search-trigger" onClick={()=>setSearchOpen(!searchOpen)}><Search size={16}/><span>Search anything...</span><kbd>⌘ K</kbd></button><div className="popover-wrap"><button className="icon-button notification-button" onClick={()=>setNotificationsOpen(!notificationsOpen)} aria-label="Notifications"><Bell size={18}/><i/></button>{notificationsOpen&&<div className="popover notification-popover"><strong>Notifications ({notificationsQuery.data?.unreadCount ?? 0} unread)</strong>{(notificationsQuery.data?.notifications ?? []).length===0?<p>No new notifications.</p>:(notificationsQuery.data?.notifications ?? []).map((notification)=><button key={notification._id} className={`notification-item ${notification.readAt ? "read" : ""}`} onClick={async()=>{await apiRequest(`/workspaces/${workspaceId}/notifications/${notification._id}/read`,{method:"PATCH"});await notificationsQuery.refetch();}}><b>{notification.title}</b><span>{notification.body}</span></button>)}</div>}}</div><div className="avatar avatar-small avatar-profile">{initials}</div></div></header>
       {searchOpen&&<div className="search-panel"><Search size={18}/><input autoFocus placeholder="Search projects, tasks, people..."/><button onClick={()=>setSearchOpen(false)}><X size={16}/></button></div>}
       <div className="content-wrap">
         <section className="welcome-row"><div><div className="eyebrow"><span className="live-dot"/> YOUR WORKSPACE</div><h1>Good morning, {session.user?.name.split(" ")[0]??"there"} <span className="wave">✦</span></h1><p>Here's what's happening across your workspace today.</p></div><button className="primary-button" onClick={()=>setActiveNav("Projects")}><Plus size={17}/> Create new project</button></section>
