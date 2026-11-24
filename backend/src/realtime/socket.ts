@@ -28,19 +28,23 @@ export function attachSocketServer(server: HttpServer): Server {
   io.on("connection", (socket) => {
     void socket.join(`user:${socket.data.userId}`);
     socket.on("workspace:join", async (workspaceId: string, acknowledge?: (result: { ok: boolean; message?: string }) => void) => {
-      if (typeof workspaceId !== "string" || !/^[a-f\d]{24}$/i.test(workspaceId)) {
-        acknowledge?.({ ok: false, message: "Invalid workspace" });
-        return;
+      try {
+        if (typeof workspaceId !== "string" || !/^[a-f\d]{24}$/i.test(workspaceId)) {
+          acknowledge?.({ ok: false, message: "Invalid workspace" });
+          return;
+        }
+        const membership = await WorkspaceMember.exists({
+          workspaceId, userId: socket.data.userId, status: "active"
+        });
+        if (!membership) {
+          acknowledge?.({ ok: false, message: "Workspace membership required" });
+          return;
+        }
+        await socket.join(`workspace:${workspaceId}`);
+        acknowledge?.({ ok: true });
+      } catch {
+        acknowledge?.({ ok: false, message: "Unable to join workspace room" });
       }
-      const membership = await WorkspaceMember.exists({
-        workspaceId, userId: socket.data.userId, status: "active"
-      });
-      if (!membership) {
-        acknowledge?.({ ok: false, message: "Workspace membership required" });
-        return;
-      }
-      await socket.join(`workspace:${workspaceId}`);
-      acknowledge?.({ ok: true });
     });
   });
 
