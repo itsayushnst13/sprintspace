@@ -7,7 +7,7 @@ import { Notification } from "../models/Notification.js";
 import { requireAuth } from "../middleware/auth.js";
 import { requireWorkspaceMember } from "../middleware/workspace-access.js";
 import { ApiError } from "../middleware/error-handler.js";
-import { emitWorkspaceEvent } from "../realtime/socket.js";
+import { emitUserEvent, emitWorkspaceEvent } from "../realtime/socket.js";
 
 export const commentsRouter = Router({ mergeParams: true });
 commentsRouter.use(requireAuth, requireWorkspaceMember());
@@ -41,7 +41,7 @@ commentsRouter.post("/", async (req, res, next) => {
         type: "task_commented", title: "New task comment", body: `A teammate commented on "${task.title}"`,
         entityType: "task", entityId: task._id
       });
-      emitWorkspaceEvent(req.workspaceId!, "notification:created", { notification });
+      emitUserEvent(notification.recipientId.toString(), "notification:created", { notification });
     }
     const populated = await Comment.findById(comment._id).populate("authorId", "name avatarUrl").lean();
     emitWorkspaceEvent(req.workspaceId!, "comment:created", { comment: populated, taskId: task.id });
