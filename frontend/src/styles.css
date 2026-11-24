@@ -1180,3 +1180,31 @@ body { font-size: 15px; }
 .workspace-login-picker p { margin: 0; color: #7b8d99; font-size: 12px; line-height: 1.6; }
 .auth-back-button { border: 0; background: transparent; color: #627b8d; padding: 8px; font-size: 12px; font-weight: 700; }
 .auth-back-button:hover { color: #315b4f; }
+
+
+/* Clear read-only helper states used by task assignment and live dashboard data. */
+.task-self-assignment {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 11px;
+  border: 1px solid #dce8e2;
+  border-radius: 9px;
+  background: #f5faf7;
+  color: #72877b;
+  font-size: 13px;
+}
+.task-self-assignment strong { color: #315d4e; }
+.field-hint { color: #9a6a42; font-size: 11px; line-height: 1.45; }
+.chart-range-label { color: #718495; font-size: 12px; font-weight: 700; }
+.chart-empty {
+  display: grid;
+  min-height: 100%;
+  place-items: center;
+  padding: 24px;
+  color: #8a9aa5;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
