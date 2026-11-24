@@ -436,14 +436,26 @@ function App() {
   const saveTaskDetails = async () => {
     if (!selectedTaskId) return;
     const canEditDetails = canManageWorkspace || selectedTask?.createdBy === session.user?.id;
+    if (canManageWorkspace && !editTaskAssignee) {
+      setSaveTaskError("Choose a Developer. Tasks cannot be left unassigned.");
+      return;
+    }
     const payload = canEditDetails
-      ? { status: editTaskStatus, priority: editTaskPriority, dueDate: editTaskDueDate || null, assigneeId: editTaskAssignee || null }
+      ? { status: editTaskStatus, priority: editTaskPriority, dueDate: editTaskDueDate || null, assigneeId: editTaskAssignee }
       : { status: editTaskStatus };
-    await apiRequest(`/workspaces/${workspaceId}/tasks/${selectedTaskId}`, {
-      method: "PATCH",
-      body: JSON.stringify(payload)
-    });
-    await Promise.all([tasksQuery.refetch(), myTasksQuery.refetch(), analyticsQuery.refetch(), activityQuery.refetch()]);
+    setSaveTaskError("");
+    setSaveTaskSaving(true);
+    try {
+      await apiRequest(`/workspaces/${workspaceId}/tasks/${selectedTaskId}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload)
+      });
+      await Promise.all([tasksQuery.refetch(), myTasksQuery.refetch(), analyticsQuery.refetch(), activityQuery.refetch()]);
+    } catch (error) {
+      setSaveTaskError(error instanceof Error ? error.message : "Could not save task details.");
+    } finally {
+      setSaveTaskSaving(false);
+    }
   };
   const submitComment = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -543,7 +555,7 @@ function App() {
       </div>
       <div className="project-detail-footer"><span>{selectedProject.tasks} total tasks</span>{session.workspace?.role === "Admin" && <button className="danger-button" onClick={() => { setSelectedProjectId(null); void archiveProject(selectedProject.id); }}><Archive size={14}/> Archive project</button>}</div>
     </section></div>}
-    {selectedTaskId && <div className="modal-scrim" onClick={() => setSelectedTaskId(null)}><section className="comment-modal" onClick={(event) => event.stopPropagation()}><div className="comment-modal-head"><div><span>TASK DISCUSSION</span><h2>{taskRows.find((task) => task.taskId === selectedTaskId)?.title ?? "Task comments"}</h2></div><button className="icon-button" onClick={() => setSelectedTaskId(null)} aria-label="Close comments"><X size={18}/></button></div>{(canManageWorkspace || selectedTask?.createdBy === session.user?.id || selectedTask?.assigneeId === session.user?.id) && <div className="task-edit-fields"><label>Status<select value={editTaskStatus} onChange={(event) => setEditTaskStatus(event.target.value as TaskStatus)}><option>Todo</option><option>In progress</option><option>In review</option><option>Done</option></select></label>{(canManageWorkspace || selectedTask?.createdBy === session.user?.id) && <><label>Priority<select value={editTaskPriority} onChange={(event) => setEditTaskPriority(event.target.value as "Low" | "Medium" | "High")}><option>Low</option><option>Medium</option><option>High</option></select></label>{canManageWorkspace && <label>Assignee<select value={editTaskAssignee} onChange={(event) => setEditTaskAssignee(event.target.value)}><option value="">Unassigned</option>{(teamQuery.data?.members ?? []).filter((member) => member.role === "Developer" || member.role === "Member").map((member) => { const user = typeof member.userId === "object" ? member.userId : null; return user ? <option key={member._id} value={user._id}>{user.name}</option> : null; })}</select></label>}<label>Due date<input type="date" value={editTaskDueDate} onChange={(event) => setEditTaskDueDate(event.target.value)}/></label></> }<button className="primary-button" onClick={() => void saveTaskDetails()}>Save task details</button>{(session.workspace?.role === "Admin" || session.workspace?.role === "Manager") && <button className="danger-button" onClick={() => void deleteTask()}>Delete task</button>}</div>}<div className="comment-list">{(commentsQuery.data?.comments ?? []).map((comment) => <article className="comment-item" key={comment._id}><div className="comment-avatar">{typeof comment.authorId === "object" ? comment.authorId.name.slice(0,1).toUpperCase() : "T"}</div><div><strong>{typeof comment.authorId === "object" ? comment.authorId.name : "Teammate"}</strong><time>{new Date(comment.createdAt).toLocaleString()}</time><p>{comment.body}</p></div></article>)}{commentsQuery.isLoading && <p className="comment-empty">Loading discussion…</p>}{!commentsQuery.isLoading && (commentsQuery.data?.comments.length ?? 0)===0 && <p className="comment-empty">No comments yet. Start the conversation.</p>}</div><form className="comment-form" onSubmit={submitComment}><textarea value={commentDraft} onChange={(event) => setCommentDraft(event.target.value)} placeholder="Write a comment…" maxLength={4000}/><button className="primary-button" disabled={!commentDraft.trim()}>Send comment <ArrowRight size={14}/></button></form></section></div>}
+    {selectedTaskId && <div className="modal-scrim" onClick={() => setSelectedTaskId(null)}><section className="comment-modal" onClick={(event) => event.stopPropagation()}><div className="comment-modal-head"><div><span>TASK DISCUSSION</span><h2>{taskRows.find((task) => task.taskId === selectedTaskId)?.title ?? "Task comments"}</h2></div><button className="icon-button" onClick={() => setSelectedTaskId(null)} aria-label="Close comments"><X size={18}/></button></div>{(canManageWorkspace || selectedTask?.createdBy === session.user?.id || selectedTask?.assigneeId === session.user?.id) && <div className="task-edit-fields"><label>Status<select value={editTaskStatus} onChange={(event) => setEditTaskStatus(event.target.value as TaskStatus)}><option>Todo</option><option>In progress</option><option>In review</option><option>Done</option></select></label>{(canManageWorkspace || selectedTask?.createdBy === session.user?.id) && <><label>Priority<select value={editTaskPriority} onChange={(event) => setEditTaskPriority(event.target.value as "Low" | "Medium" | "High")}><option>Low</option><option>Medium</option><option>High</option></select></label>{canManageWorkspace && <label>Assignee<select value={editTaskAssignee} onChange={(event) => setEditTaskAssignee(event.target.value)}><option value="" disabled>Choose a developer</option>{(teamQuery.data?.members ?? []).filter((member) => member.role === "Developer" || member.role === "Member").map((member) => { const user = typeof member.userId === "object" ? member.userId : null; return user ? <option key={member._id} value={user._id}>{user.name}</option> : null; })}</select></label>}<label>Due date<input type="date" value={editTaskDueDate} onChange={(event) => setEditTaskDueDate(event.target.value)}/></label></> }{saveTaskError && <p className="form-error" role="alert">{saveTaskError}</p>}<button className="primary-button" disabled={saveTaskSaving} onClick={() => void saveTaskDetails()}>{saveTaskSaving ? "Saving..." : "Save task details"}</button>{(session.workspace?.role === "Admin" || session.workspace?.role === "Manager") && <button className="danger-button" onClick={() => void deleteTask()}>Delete task</button>}</div>}<div className="comment-list">{(commentsQuery.data?.comments ?? []).map((comment) => <article className="comment-item" key={comment._id}><div className="comment-avatar">{typeof comment.authorId === "object" ? comment.authorId.name.slice(0,1).toUpperCase() : "T"}</div><div><strong>{typeof comment.authorId === "object" ? comment.authorId.name : "Teammate"}</strong><time>{new Date(comment.createdAt).toLocaleString()}</time><p>{comment.body}</p></div></article>)}{commentsQuery.isLoading && <p className="comment-empty">Loading discussion…</p>}{!commentsQuery.isLoading && (commentsQuery.data?.comments.length ?? 0)===0 && <p className="comment-empty">No comments yet. Start the conversation.</p>}</div><form className="comment-form" onSubmit={submitComment}><textarea value={commentDraft} onChange={(event) => setCommentDraft(event.target.value)} placeholder="Write a comment…" maxLength={4000}/><button className="primary-button" disabled={!commentDraft.trim()}>Send comment <ArrowRight size={14}/></button></form></section></div>}
   </div>;
 }
 
