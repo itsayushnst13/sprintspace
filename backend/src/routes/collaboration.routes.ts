@@ -62,6 +62,8 @@ commentsRouter.delete("/:commentId", async (req, res, next) => {
       throw new ApiError(403, "You can only delete your own comments");
     }
     await comment.deleteOne();
+    await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "comment", entityId: comment._id, action: "comment.deleted", summary: "Deleted a task comment" });
+    await invalidateWorkspaceAnalytics(req.workspaceId!);
     emitWorkspaceEvent(req.workspaceId!, "comment:deleted", { commentId: comment.id, taskId: comment.taskId.toString() });
     res.status(204).end();
   } catch (error) { next(error); }
