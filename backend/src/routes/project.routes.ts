@@ -38,7 +38,7 @@ projectRouter.post("/", async (req, res, next) => {
 
 projectRouter.patch("/:projectId", async (req, res, next) => {
   try {
-    if (!["Admin", "Manager"].includes(req.workspaceRole ?? "")) throw new ApiError(403, "Only admins and managers can update projects");
+    if (!req.workspaceRole || !canManageProjects(req.workspaceRole)) throw new ApiError(403, "Only admins and managers can update projects");
     const input = projectInput.partial().parse(req.body);
     const project = await Project.findOneAndUpdate(
       { _id: req.params.projectId, workspaceId: req.workspaceId, status: "active" },
@@ -59,6 +59,8 @@ projectRouter.delete("/:projectId", async (req, res, next) => {
       { $set: { status: "archived" } }, { new: true }
     );
     if (!project) throw new ApiError(404, "Project not found");
+    await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "project", entityId: project._id, action: "project.archived", summary: `Archived project "${project.name}"` });
+    emitWorkspaceEvent(req.workspaceId!, "project:updated", { project });
     res.json({ project });
   } catch (error) { next(error); }
 });
