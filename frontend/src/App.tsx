@@ -14,10 +14,11 @@ import { AuthScreen } from "./components/AuthScreen";
 import { apiRequest, getAccessToken } from "./lib/api";
 
 type NavItem = { label: string; icon: typeof LayoutDashboard };
+const boardStatuses: TaskStatus[] = ["Todo", "In progress", "In review", "Done"];
 const primaryNav: NavItem[] = [
   { label: "Overview", icon: LayoutDashboard }, { label: "My tasks", icon: ListTodo },
   { label: "Projects", icon: FolderKanban }, { label: "Calendar", icon: CalendarDays },
-  { label: "Team", icon: Users }, { label: "Activity", icon: Activity }
+  { label: "Board", icon: ListTodo }, { label: "Team", icon: Users }, { label: "Activity", icon: Activity }
 ];
 
 type AnalyticsResponse = { metrics: { projects: number; members: number; tasks: number; completedTasks: number; dueIn24Hours: number; completionRate: number }; tasksByStatus: Array<{ _id: string; count: number }> };
@@ -161,6 +162,12 @@ function App() {
   if (!session.ready) return <div className="auth-loading"><div className="brand-mark"><Command size={19}/></div><span>Restoring your workspace…</span></div>;
   if (!session.authenticated) return <AuthScreen />;
 
+  const moveTask = async (taskId: string, status: TaskStatus) => {
+    await apiRequest(`/workspaces/${workspaceId}/tasks/${taskId}`, {
+      method: "PATCH", body: JSON.stringify({ status })
+    });
+    await Promise.all([tasksQuery.refetch(), analyticsQuery.refetch()]);
+  };
   const completeTask = async (id: string) => {
     const task = taskRows.find((item) => item.id === id);
     if (!task) return;
@@ -259,6 +266,9 @@ function App() {
         </section>
         <section className="surface team-panel"><div className="section-heading"><div><h2>Have an invitation?</h2><p>Paste the one-time invitation token you received to join another workspace.</p></div></div><form className="invite-form" onSubmit={acceptInvite}><input value={acceptInviteToken} onChange={(event) => setAcceptInviteToken(event.target.value)} placeholder="Paste invitation token" required/><button className="primary-button" disabled={!acceptInviteToken.trim()}>Accept invite <ArrowRight size={15}/></button></form>{inviteFeedback && <p className="team-feedback">{inviteFeedback}</p>}</section>
         {session.workspace?.role !== "Member" && <section className="surface team-panel"><div className="section-heading"><div><h2>Invite a teammate</h2><p>Invitations expire after 7 days. Email delivery is not configured yet.</p></div></div><form className="invite-form" onSubmit={sendInvite}><input type="email" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="teammate@company.com" required/><select value={inviteRole} onChange={(event) => setInviteRole(event.target.value as "Manager" | "Member")}><option value="Member">Member</option>{session.workspace?.role === "Admin" && <option value="Manager">Manager</option>}</select><button className="primary-button" disabled={!inviteEmail.trim()}><Plus size={15}/> Create invite</button></form>{inviteToken && <div className="invite-token"><strong>One-time invite token</strong><code>{inviteToken}</code><button className="text-button" onClick={() => void navigator.clipboard.writeText(inviteToken)}>Copy token</button><p>Share this token securely. The invitee must sign in with the invited email and accept it through the invitation API.</p></div>}<div className="pending-invites"><h3>Pending invitations</h3>{(invitationsQuery.data?.invitations ?? []).length === 0 ? <p className="team-empty">No pending invitations.</p> : invitationsQuery.data?.invitations.map((invitation) => <div className="team-row" key={invitation._id}><div className="team-identity"><strong>{invitation.email}</strong><span>Expires {new Date(invitation.expiresAt).toLocaleDateString()}</span></div><span className="role-pill role-member">{invitation.role}</span></div>)}</div></section>}
+      </> : activeNav === "Board" ? <>
+        <section className="welcome-row"><div><div className="eyebrow"><span className="live-dot"/> TASK WORKFLOW</div><h1>Kanban board <span className="wave">✦</span></h1><p>Move work forward by dragging tasks between stages.</p></div><button className="primary-button" onClick={() => { setNewTaskProjectId(projectRows[0]?.id ?? ""); setCreateModal("task"); }}><Plus size={16}/> New task</button></section>
+        <section className="kanban-board">{boardStatuses.map((status) => { const cards = taskRows.filter((task) => task.status === status); return <div className="kanban-column" key={status} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const taskId = event.dataTransfer.getData("text/plain"); if (taskId) void moveTask(taskId, status); }}><div className="kanban-column-head"><span className={`kanban-status-dot ${status.toLowerCase().replace(" ","-")}`}/><strong>{status}</strong><span>{cards.length}</span></div>{cards.map((task) => <article className="kanban-task-card" key={task.taskId} draggable onDragStart={(event) => event.dataTransfer.setData("text/plain", task.taskId)}><button className="task-open" onClick={() => { setSelectedTaskId(task.taskId); setEditTaskStatus(task.status); setEditTaskPriority(task.priority); setEditTaskDueDate(task.dueDate ? new Date(task.dueDate).toISOString().slice(0,10) : ""); setEditTaskAssignee(task.assigneeId ?? ""); }}>{task.title}</button><span>{task.project}</span><div><PriorityPill priority={task.priority}/><small>{task.due}</small></div></article>)}{cards.length === 0 && <p className="kanban-empty">Drop a task here</p>}</div>; })}</section>
       </> : activeNav === "Projects" ? <>
         <section className="welcome-row"><div><div className="eyebrow"><span className="live-dot"/> PROJECT PORTFOLIO</div><h1>Projects <span className="wave">✦</span></h1><p>Track every initiative across your workspace.</p></div><button className="primary-button" onClick={() => setCreateModal("project")}><Plus size={16}/> New project</button></section>
         <section className="projects-grid project-page-grid">{projectRows.map((project) => <article className="surface project-card" key={project.id}><div className="project-card-top"><div className={`project-icon ${project.color}`}><FolderKanban size={18}/></div><span className="role-pill">{project.progress}% complete</span></div><h3>{project.name}</h3><p className="project-team">{project.team}</p><div className="progress-track"><span className={project.color} style={{ width: `${project.progress}%` }}/></div><div className="project-footer"><span><Check size={13}/> {project.tasks} tasks</span><span><CalendarDays size={13}/> {project.due}</span></div></article>)}{projectRows.length === 0 && <div className="empty-state">No projects yet. Create your first project.</div>}</section>
