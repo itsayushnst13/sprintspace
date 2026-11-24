@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { io } from "socket.io-client";
 import {
-  Activity, ArrowDown, ArrowRight, ArrowUp, ArrowUpRight, Bell, CalendarDays,
+  Activity, Archive, ArrowDown, ArrowRight, ArrowUp, ArrowUpRight, Bell, CalendarDays,
   Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleHelp,
-  Clock3, Command, FolderKanban, LayoutDashboard, ListTodo, LogOut, Menu,
+  Clock3, Command, FolderKanban, FolderOpen, LayoutDashboard, ListTodo, LogOut, Menu,
   MoreHorizontal, Plus, Search, Settings2, Sparkles, Target, Users, X, Zap
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -37,6 +37,7 @@ function App() {
   const [activeNav, setActiveNav] = useState("Overview");
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [commentDraft, setCommentDraft] = useState("");
   const workspaceId = session.workspace?.id;
   const canManageWorkspace = session.workspace?.role === "Admin" || session.workspace?.role === "Manager";
@@ -174,6 +175,8 @@ function App() {
   const [expandedCalendarDate, setExpandedCalendarDate] = useState<string | null>(null);
   const [createModal, setCreateModal] = useState<"project" | "task" | "workspace" | null>(null);
   const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectDescription, setNewProjectDescription] = useState("");
+  const [newProjectDueDate, setNewProjectDueDate] = useState("");
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskProjectId, setNewTaskProjectId] = useState("");
@@ -203,7 +206,17 @@ function App() {
   const projectRows = (projectsQuery.data?.projects ?? []).map((project) => {
     const projectTasks = tasksQuery.data?.tasks.filter((task) => task.projectId === project._id) ?? [];
     const done = projectTasks.filter((task) => task.status === "Done").length;
-    return { id: project._id, name: project.name, team: "Workspace project", color: project.color ?? "violet", progress: projectTasks.length ? Math.round((done / projectTasks.length) * 100) : 0, due: project.dueDate ? new Date(project.dueDate).toLocaleDateString() : "No due date", tasks: `${done}/${projectTasks.length}` };
+    const creator = typeof project.createdBy === "object"
+      ? project.createdBy.name
+      : (teamQuery.data?.members ?? []).find((member) => (typeof member.userId === "object" ? member.userId._id : member.userId) === project.createdBy)?.userId;
+    const creatorName = typeof creator === "string" ? "Workspace member" : creator?.name ?? "Workspace member";
+    return {
+      id: project._id, name: project.name, description: project.description ?? "", createdByName: creatorName,
+      color: project.color ?? "violet", progress: projectTasks.length ? Math.round((done / projectTasks.length) * 100) : 0,
+      due: project.dueDate ? formatTaskDueDate(project.dueDate) : "No deadline",
+      dueDate: project.dueDate ?? null, tasks: `${done}/${projectTasks.length}`,
+      totalTasks: projectTasks.length, completedTasks: done
+    };
   });
   const taskRows = (tasksQuery.data?.tasks ?? []).map((task) => {
     const assignedMember = (teamQuery.data?.members ?? []).find((member) => {
@@ -232,6 +245,7 @@ function App() {
   const calendarMonthKey = `${calendarMonth.getFullYear()}-${String(calendarMonth.getMonth() + 1).padStart(2, "0")}`;
   const calendarMonthTaskCount = calendarRows.filter((task) => taskDueDateKey(task.dueDate!).startsWith(calendarMonthKey)).length;
   const selectedTask = tasksQuery.data?.tasks.find((task) => task._id === selectedTaskId);
+  const selectedProject = projectRows.find((project) => project.id === selectedProjectId);
   const calendarGridStart = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1 - ((calendarMonth.getDay() + 6) % 7));
   const calendarDays = Array.from({ length: 42 }, (_, index) => new Date(calendarGridStart.getFullYear(), calendarGridStart.getMonth(), calendarGridStart.getDate() + index));
   const calendarDateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -286,6 +300,34 @@ function App() {
     setInviteEmail("");
     await invitationsQuery.refetch();
   };
+  const openTask = (taskId: string) => {
+    const task = tasksQuery.data?.tasks.find((item) => item._id === taskId);
+    if (!task) return;
+    setSelectedProjectId(null);
+    setSelectedTaskId(taskId);
+    setEditTaskStatus(task.status);
+    setEditTaskPriority(task.priority);
+    setEditTaskDueDate(task.dueDate ? taskDueDateKey(task.dueDate) : "");
+    setEditTaskAssignee(task.assigneeId ?? "");
+  };
+  const openProject = (projectId: string) => {
+    setSelectedTaskId(null);
+    setSelectedProjectId(projectId);
+  };
+  const createTaskForProject = (projectId: string) => {
+    setNewTaskProjectId(projectId);
+    setNewTaskAssignee("");
+    setCreateTaskError("");
+    setNewProjectForTaskName("");
+    setSelectedProjectId(null);
+    setCreateModal("task");
+  };
+  const openActivityItem = (item: ActivityRecord) => {
+    if (item.entityType === "task" && item.entityId) openTask(item.entityId);
+    else if (item.entityType === "project" && item.entityId) openProject(item.entityId);
+    else if (item.entityType === "comment" && typeof item.metadata?.taskId === "string") openTask(item.metadata.taskId);
+    else if (item.entityType === "member") setActiveNav("Team");
+  };
   const archiveProject = async (projectId: string) => {
     if (!window.confirm("Archive this project? Its tasks will remain in workspace history.")) return;
     await apiRequest(`/workspaces/${workspaceId}/projects/${projectId}`, { method: "DELETE" });
@@ -305,11 +347,18 @@ function App() {
   const createProject = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!newProjectName.trim()) return;
-    await apiRequest(`/workspaces/${workspaceId}/projects`, { method: "POST", body: JSON.stringify({ name: newProjectName.trim() }) });
+    await apiRequest(`/workspaces/${workspaceId}/projects`, {
+      method: "POST",
+      body: JSON.stringify({ name: newProjectName.trim(), description: newProjectDescription.trim(), dueDate: newProjectDueDate || null })
+    });
     setNewProjectName("");
+    setNewProjectDescription("");
+    setNewProjectDueDate("");
     setCreateModal(null);
-    await queryClient.invalidateQueries({ queryKey: ["workspace-projects", workspaceId] });
-    await queryClient.invalidateQueries({ queryKey: ["workspace-analytics", workspaceId] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["workspace-projects", workspaceId] }),
+      queryClient.invalidateQueries({ queryKey: ["workspace-analytics", workspaceId] })
+    ]);
   };
   const openCreateTask = () => {
     setNewTaskProjectId(projectRows[0]?.id ?? "");
