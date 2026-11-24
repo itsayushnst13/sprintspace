@@ -1540,3 +1540,162 @@ body {
   }
   .sidebar-scroll-region { overflow: visible; }
 }
+
+
+/* Activity feed: compact event cards with clear actor, action, context and time. */
+.activity-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+}
+.activity-feed-row.activity-feed-button {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+  min-height: 88px;
+  padding: 15px 17px;
+  border: 1px solid #e7edef;
+  border-radius: 14px;
+  background: #fff;
+  color: #294257;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .16s ease, background .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+.activity-feed-row.activity-feed-button:hover {
+  border-color: #c9ddd5;
+  background: #fbfdfc;
+  box-shadow: 0 7px 19px rgba(36,76,64,.07);
+  transform: translateY(-1px);
+}
+.activity-feed-row.activity-feed-button:focus-visible {
+  outline: 3px solid rgba(74,145,119,.23);
+  outline-offset: 2px;
+}
+.activity-feed-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid #e5eee9;
+  border-radius: 13px;
+  background: #eff7f2;
+  color: #438b76;
+  flex: 0 0 46px;
+}
+.activity-event-created .activity-feed-icon {
+  background: #eef7f0;
+  border-color: #dceee0;
+  color: #42865f;
+}
+.activity-event-assigned .activity-feed-icon,
+.activity-event-invited .activity-feed-icon,
+.activity-event-joined .activity-feed-icon {
+  background: #edf5ff;
+  border-color: #dce9fa;
+  color: #5485bb;
+}
+.activity-event-updated .activity-feed-icon {
+  background: #f2f0ff;
+  border-color: #e5e0ff;
+  color: #7464cf;
+}
+.activity-event-deleted .activity-feed-icon,
+.activity-event-archived .activity-feed-icon {
+  background: #fff2f0;
+  border-color: #f7dfda;
+  color: #c16e65;
+}
+.activity-feed-content {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+}
+.activity-feed-header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+.activity-feed-row .activity-feed-actor {
+  overflow: hidden;
+  color: #20394d;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.activity-feed-header time {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: #8a9aa5;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+.activity-feed-summary {
+  display: block;
+  color: #60798b;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.activity-feed-context {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  color: #96a4ad;
+  font-size: 11px;
+  line-height: 1.35;
+}
+.activity-entity-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 3px 8px;
+  border: 1px solid #e7edef;
+  border-radius: 6px;
+  background: #f7f9fa;
+  color: #708594;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .15px;
+}
+.activity-entity-task { background: #f1f0ff; border-color: #e6e2ff; color: #7367c6; }
+.activity-entity-project { background: #eef7f1; border-color: #deeee3; color: #4e8a68; }
+.activity-entity-comment { background: #fff6eb; border-color: #f5e8d4; color: #ad834d; }
+.activity-entity-member { background: #edf5ff; border-color: #dce9f8; color: #5682b2; }
+.activity-feed-row .activity-open-icon {
+  width: 19px;
+  height: 19px;
+  margin: 0;
+  color: #8aa99d;
+  transition: color .16s ease, transform .16s ease;
+}
+.activity-feed-row:hover .activity-open-icon {
+  color: #397e68;
+  transform: translate(2px, -2px);
+}
+@media (max-width: 700px) {
+  .activity-feed { gap: 8px; padding-top: 9px; }
+  .activity-feed-row.activity-feed-button {
+    grid-template-columns: 40px minmax(0, 1fr) 18px;
+    gap: 11px;
+    min-height: 82px;
+    padding: 13px 12px;
+    border-radius: 12px;
+  }
+  .activity-feed-icon { width: 40px; height: 40px; border-radius: 11px; }
+  .activity-feed-row .activity-feed-actor { font-size: 14px; }
+  .activity-feed-header { flex-wrap: wrap; gap: 4px 8px; }
+  .activity-feed-header time { font-size: 11px; }
+  .activity-feed-summary { font-size: 13px; }
+  .activity-feed-context { font-size: 11px; }
+}
