@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import { env } from "./config/env.js";
 import { errorHandler, notFound } from "./middleware/error-handler.js";
+import { apiRouter } from "./routes/index.js";
 
 export const app = express();
 
@@ -32,5 +33,6 @@ app.get("/api/v1", (_req, res) => {
   res.json({ name: "SprintSpace API", version: "v1" });
 });
 
+app.use("/api/v1", apiRouter);
 app.use(notFound);
 app.use(errorHandler);
