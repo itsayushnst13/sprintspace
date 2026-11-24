@@ -133,6 +133,10 @@ function App() {
     socket.on("project:updated", refreshWorkspaceData);
     socket.on("comment:created", refreshWorkspaceData);
     socket.on("notification:created", refreshWorkspaceData);
+    socket.on("team:invited", refreshWorkspaceData);
+    socket.on("team:updated", refreshWorkspaceData);
+    socket.on("team:removed", refreshWorkspaceData);
+    socket.on("team:joined", refreshWorkspaceData);
     return () => { socket.disconnect(); setSocketConnected(false); };
   }, [session.authenticated, workspaceId, queryClient]);
   const [mobileNav, setMobileNav] = useState(false);
