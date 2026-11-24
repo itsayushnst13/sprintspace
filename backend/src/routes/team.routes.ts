@@ -8,7 +8,7 @@ import { requireAuth } from "../middleware/auth.js";
 import { requireWorkspaceMember } from "../middleware/workspace-access.js";
 import { ApiError } from "../middleware/error-handler.js";
 import { hashRefreshToken } from "../security/refresh-token.js";
-import { emitWorkspaceEvent } from "../realtime/socket.js";
+import { emitWorkspaceEvent, revokeWorkspaceMemberSockets } from "../realtime/socket.js";
 import { invalidateWorkspaceAnalytics } from "../cache/workspace-cache.js";
 import { ActivityLog } from "../models/ActivityLog.js";
 
@@ -127,6 +127,7 @@ teamRouter.delete("/members/:memberId", async (req, res, next) => {
     }
     target.status = "suspended";
     await target.save();
+    await revokeWorkspaceMemberSockets(req.workspaceId!, target.userId.toString());
     await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "member", entityId: target._id, action: "member.removed", summary: "Removed a member from the workspace" });
     await invalidateWorkspaceAnalytics(req.workspaceId!);
     emitWorkspaceEvent(req.workspaceId!, "team:removed", { memberId: target.id });
