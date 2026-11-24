@@ -28,7 +28,7 @@ export const useSession = create<SessionState>((set) => ({
   markReady: () => set({ ready: true }),
   clear: () => {
     setAccessToken(null);
-    localStorage.removeItem("sprintspace.workspaceId");
+    // Keep the last workspace choice so the next sign-in can restore the same role/context.
     set({ user: null, workspace: null, authenticated: false, ready: true });
   }
 }));
