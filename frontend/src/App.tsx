@@ -24,6 +24,8 @@ type AnalyticsResponse = { metrics: { projects: number; members: number; tasks: 
 type ProjectRecord = { _id: string; name: string; color?: string; dueDate?: string | null };
 type TaskRecord = { _id: string; title: string; projectId: string; status: TaskStatus; priority: "High" | "Medium" | "Low"; assigneeId?: string | null; dueDate?: string | null };
 type CommentRecord = { _id: string; body: string; createdAt: string; authorId: { name: string } | string };
+type TeamMember = { _id: string; role: "Admin" | "Manager" | "Member"; userId: { _id: string; name: string; email: string } | string; createdAt: string };
+type InvitationRecord = { _id: string; email: string; role: "Manager" | "Member"; expiresAt: string };
 
 function App() {
   const session = useSession();
@@ -65,6 +67,16 @@ function App() {
     queryFn: () => apiRequest<{ comments: CommentRecord[] }>(`/workspaces/${workspaceId}/tasks/${selectedTaskId}/comments`),
     enabled: session.authenticated && Boolean(workspaceId) && Boolean(selectedTaskId)
   });
+  const teamQuery = useQuery({
+    queryKey: ["workspace-team", workspaceId],
+    queryFn: () => apiRequest<{ members: TeamMember[] }>(`/workspaces/${workspaceId}/team/members`),
+    enabled: session.authenticated && Boolean(workspaceId) && activeNav === "Team"
+  });
+  const invitationsQuery = useQuery({
+    queryKey: ["workspace-invitations", workspaceId],
+    queryFn: () => apiRequest<{ invitations: InvitationRecord[] }>(`/workspaces/${workspaceId}/team/invitations`),
+    enabled: session.authenticated && Boolean(workspaceId) && activeNav === "Team" && session.workspace?.role !== "Member"
+  });
   const notificationsQuery = useQuery({
     queryKey: ["workspace-notifications", workspaceId],
     queryFn: () => apiRequest<{ notifications: Array<{ _id: string; title: string; body: string; readAt?: string | null; createdAt: string }>; unreadCount: number }>(`/workspaces/${workspaceId}/notifications`),
@@ -88,6 +100,8 @@ function App() {
       void queryClient.invalidateQueries({ queryKey: ["workspace-tasks", workspaceId] });
       void queryClient.invalidateQueries({ queryKey: ["workspace-notifications", workspaceId] });
       void queryClient.invalidateQueries({ queryKey: ["task-comments", workspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ["workspace-team", workspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ["workspace-invitations", workspaceId] });
     };
     socket.on("task:created", refreshWorkspaceData);
     socket.on("task:updated", refreshWorkspaceData);
@@ -110,6 +124,9 @@ function App() {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskProjectId, setNewTaskProjectId] = useState("");
   const [newTaskPriority, setNewTaskPriority] = useState<"Low" | "Medium" | "High">("Medium");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<"Manager" | "Member">("Member");
+  const [inviteToken, setInviteToken] = useState("");
 
   const metrics = analyticsQuery.data?.metrics;
   const chartData = analyticsQuery.data?.tasksByStatus.map((item) => ({ day: item._id, completed: item.count, created: 0 })) ?? weeklyActivity;
@@ -131,6 +148,16 @@ function App() {
   if (!session.authenticated) return <AuthScreen />;
 
   const completeTask = (id: string) => setCheckedTasks((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  const sendInvite = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!inviteEmail.trim()) return;
+    const result = await apiRequest<{ inviteToken: string }>(`/workspaces/${workspaceId}/team/invitations`, {
+      method: "POST", body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole })
+    });
+    setInviteToken(result.inviteToken);
+    setInviteEmail("");
+    await invitationsQuery.refetch();
+  };
   const createProject = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!newProjectName.trim()) return;
