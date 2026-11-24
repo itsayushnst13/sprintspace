@@ -11,6 +11,7 @@ import { Notification } from "../models/Notification.js";
 import { Comment } from "../models/Comment.js";
 import { emitUserEvent, emitWorkspaceEvent } from "../realtime/socket.js";
 import { canDeleteTasks } from "../security/permissions.js";
+import { invalidateWorkspaceAnalytics } from "../cache/workspace-cache.js";
 
 export const taskRouter = Router({ mergeParams: true });
 taskRouter.use(requireAuth, requireWorkspaceMember());
@@ -45,6 +46,7 @@ taskRouter.post("/", async (req, res, next) => {
       if (!member) throw new ApiError(400, "Assignee must be an active member of this workspace");
     }
     const task = await Task.create({ ...input, workspaceId: req.workspaceId, createdBy: req.userId });
+    await invalidateWorkspaceAnalytics(req.workspaceId!);
     await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "task", entityId: task._id, action: "task.created", summary: `Created task "${task.title}"` });
     emitWorkspaceEvent(req.workspaceId!, "task:created", { task });
     if (task.assigneeId && task.assigneeId.toString() !== req.userId) {
@@ -72,6 +74,7 @@ taskRouter.patch("/:taskId", async (req, res, next) => {
       { $set: input }, { new: true, runValidators: true }
     );
     if (!task) throw new ApiError(404, "Task not found");
+    await invalidateWorkspaceAnalytics(req.workspaceId!);
     await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "task", entityId: task._id, action: "task.updated", summary: `Updated task "${task.title}"`, metadata: input });
     emitWorkspaceEvent(req.workspaceId!, "task:updated", { task });
     res.json({ task });
@@ -83,6 +86,7 @@ taskRouter.delete("/:taskId", async (req, res, next) => {
     if (!req.workspaceRole || !canDeleteTasks(req.workspaceRole)) throw new ApiError(403, "Only admins and managers can delete tasks");
     const task = await Task.findOneAndDelete({ _id: req.params.taskId, workspaceId: req.workspaceId });
     if (!task) throw new ApiError(404, "Task not found");
+    await invalidateWorkspaceAnalytics(req.workspaceId!);
     await Promise.all([
       Comment.deleteMany({ taskId: task._id, workspaceId: req.workspaceId }),
       Notification.deleteMany({ entityType: "task", entityId: task._id, workspaceId: req.workspaceId })
