@@ -10,7 +10,7 @@ import { ActivityLog } from "../models/ActivityLog.js";
 import { Notification } from "../models/Notification.js";
 import { Comment } from "../models/Comment.js";
 import { emitUserEvent, emitWorkspaceEvent } from "../realtime/socket.js";
-import { canDeleteTasks } from "../security/permissions.js";
+import { canDeleteTasks, canEditTask } from "../security/permissions.js";
 import { invalidateWorkspaceAnalytics } from "../cache/workspace-cache.js";
 
 export const taskRouter = Router({ mergeParams: true });
@@ -62,9 +62,11 @@ taskRouter.patch("/:taskId", async (req, res, next) => {
     const input = taskInput.omit({ projectId: true }).partial().refine((value) => Object.keys(value).length > 0, "At least one field is required").parse(req.body);
     const existingTask = await Task.findOne({ _id: req.params.taskId, workspaceId: req.workspaceId });
     if (!existingTask) throw new ApiError(404, "Task not found");
-    const isPrivileged = req.workspaceRole === "Admin" || req.workspaceRole === "Manager";
-    const isOwnerOrAssignee = existingTask.createdBy.toString() === req.userId || existingTask.assigneeId?.toString() === req.userId;
-    if (!isPrivileged && !isOwnerOrAssignee) throw new ApiError(403, "Only task creator, assignee, or workspace managers can edit this task");
+    const isCreator = existingTask.createdBy.toString() === req.userId;
+    const isAssignee = existingTask.assigneeId?.toString() === req.userId;
+    if (!req.workspaceRole || !canEditTask(req.workspaceRole, isCreator, isAssignee, Object.keys(input) as Array<"title" | "description" | "status" | "priority" | "assigneeId" | "dueDate">)) {
+      throw new ApiError(403, "Assignees can update task status; task creators and workspace managers can edit all task fields");
+    }
     if (input.assigneeId) {
       const member = await WorkspaceMember.exists({ workspaceId: req.workspaceId, userId: input.assigneeId, status: "active" });
       if (!member) throw new ApiError(400, "Assignee must be an active member of this workspace");
