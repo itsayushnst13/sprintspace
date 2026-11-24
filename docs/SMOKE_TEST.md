@@ -35,8 +35,11 @@ Use this checklist after starting the application. These are manual runtime chec
 - [ ] As Manager, create and edit a project.
 - [ ] As Member, confirm project creation/edit controls are unavailable and API requests are forbidden.
 - [ ] Create tasks with each priority and each workflow status.
-- [ ] Assign a task to another active workspace member.
-- [ ] Move tasks across Kanban columns and confirm the change persists after refresh.
+- [ ] Create a task and choose an active developer in the **Assign to** field.
+- [ ] Confirm the assignee name appears in the task list and Kanban card.
+- [ ] Confirm the assignee sees the task in **My tasks** and receives a notification in the bell menu.
+- [ ] Confirm the Activity page records who assigned the task and to whom.
+- [ ] Move tasks across Kanban columns as an allowed user and confirm the change persists after refresh.
 - [ ] As an assignee, confirm status can be changed but title, priority, due date, and assignee cannot.
 - [ ] As a task creator or Manager/Admin, edit task details.
 - [ ] As Manager/Admin, delete a task and confirm its comments and task notifications are removed.
