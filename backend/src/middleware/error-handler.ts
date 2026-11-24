@@ -20,13 +20,15 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, _req, res, _ne
   const invalid = error instanceof ZodError;
   const mongoDuplicate = typeof error === "object" && error !== null && "code" in error && error.code === 11000;
   const mongoCast = typeof error === "object" && error !== null && "name" in error && error.name === "CastError";
-  const status = known?.statusCode ?? (invalid || mongoCast ? 400 : mongoDuplicate ? 409 : 500);
-  const message = known?.message ?? (invalid ? "Request validation failed" : mongoCast ? "Invalid resource identifier" : mongoDuplicate ? "A record with this value already exists" : "An unexpected error occurred");
-  if (!known && !invalid && !mongoDuplicate && !mongoCast) console.error(error);
+  const mongoValidation = typeof error === "object" && error !== null && "name" in error && error.name === "ValidationError";
+  const invalidJson = error instanceof SyntaxError && typeof error === "object" && error !== null && "status" in error && error.status === 400;
+  const status = known?.statusCode ?? (invalid || mongoCast || mongoValidation || invalidJson ? 400 : mongoDuplicate ? 409 : 500);
+  const message = known?.message ?? (invalid ? "Request validation failed" : mongoCast ? "Invalid resource identifier" : mongoValidation ? "Database validation failed" : invalidJson ? "Request body contains invalid JSON" : mongoDuplicate ? "A record with this value already exists" : "An unexpected error occurred");
+  if (!known && !invalid && !mongoDuplicate && !mongoCast && !mongoValidation && !invalidJson) console.error(error);
 
   res.status(status).json({
     error: {
-      code: known?.code ?? (invalid ? "VALIDATION_ERROR" : mongoCast ? "INVALID_ID" : mongoDuplicate ? "DUPLICATE_RECORD" : "INTERNAL_SERVER_ERROR"),
+      code: known?.code ?? (invalid ? "VALIDATION_ERROR" : mongoCast ? "INVALID_ID" : mongoValidation ? "DATABASE_VALIDATION_ERROR" : invalidJson ? "INVALID_JSON" : mongoDuplicate ? "DUPLICATE_RECORD" : "INTERNAL_SERVER_ERROR"),
       message
     }
   });
