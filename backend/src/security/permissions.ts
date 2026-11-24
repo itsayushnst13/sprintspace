@@ -8,3 +8,15 @@ export const canArchiveProjects = (role: WorkspaceRole): boolean =>
 
 export const canDeleteTasks = (role: WorkspaceRole): boolean =>
   role === "Admin" || role === "Manager";
+
+export type TaskEditField = "title" | "description" | "status" | "priority" | "assigneeId" | "dueDate";
+
+export function canEditTask(
+  role: WorkspaceRole,
+  isCreator: boolean,
+  isAssignee: boolean,
+  fields: TaskEditField[]
+): boolean {
+  if (role === "Admin" || role === "Manager" || isCreator) return true;
+  return isAssignee && fields.length > 0 && fields.every((field) => field === "status");
+}
