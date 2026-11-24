@@ -9,6 +9,7 @@ import { requireWorkspaceMember } from "../middleware/workspace-access.js";
 import { ApiError } from "../middleware/error-handler.js";
 import { hashRefreshToken } from "../security/refresh-token.js";
 import { emitWorkspaceEvent } from "../realtime/socket.js";
+import { invalidateWorkspaceAnalytics } from "../cache/workspace-cache.js";
 
 export const teamRouter = Router({ mergeParams: true });
 teamRouter.use(requireAuth, requireWorkspaceMember());
@@ -97,6 +98,7 @@ teamRouter.patch("/members/:memberId/role", async (req, res, next) => {
     if (target.role === "Admin") throw new ApiError(400, "Transfer workspace ownership before changing the admin role");
     target.role = role;
     await target.save();
+    await invalidateWorkspaceAnalytics(req.workspaceId!);
     emitWorkspaceEvent(req.workspaceId!, "team:updated", { memberId: target.id, role });
     res.json({ member: target });
   } catch (error) { next(error); }
@@ -118,6 +120,7 @@ teamRouter.delete("/members/:memberId", async (req, res, next) => {
     }
     target.status = "suspended";
     await target.save();
+    await invalidateWorkspaceAnalytics(req.workspaceId!);
     emitWorkspaceEvent(req.workspaceId!, "team:removed", { memberId: target.id });
     res.status(204).end();
   } catch (error) { next(error); }
@@ -148,6 +151,7 @@ invitationAcceptanceRouter.post("/accept", requireAuth, async (req, res, next) =
       { $set: { role: invitation.role, status: "active" }, $setOnInsert: { workspaceId: invitation.workspaceId, userId: req.userId } },
       { upsert: true, new: true, runValidators: true }
     );
+    await invalidateWorkspaceAnalytics(invitation.workspaceId.toString());
     emitWorkspaceEvent(invitation.workspaceId.toString(), "team:joined", { memberId: member.id, userId: req.userId });
     res.json({ accepted: true, workspaceId: invitation.workspaceId.toString(), role: invitation.role });
   } catch (error) { next(error); }
