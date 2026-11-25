@@ -97,7 +97,7 @@ function App() {
         event.preventDefault();
         setSearchOpen((open) => !open);
       }
-      if (event.key === "Escape") { setSearchOpen(false); setSearchTerm(""); }
+      if (event.key === "Escape") { setSearchOpen(false); setSearchTerm(""); setNotificationsOpen(false); setMobileNav(false); }
     };
     const handleOutsidePointer = (event: PointerEvent) => {
       if (searchWrapRef.current && !searchWrapRef.current.contains(event.target as Node)) setSearchOpen(false);
