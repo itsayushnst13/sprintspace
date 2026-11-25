@@ -66,6 +66,7 @@ test("complete workspace collaboration journey", async ({ browser, page, request
 
     // Workspace role and membership must be reflected in the UI and enforced by the API.
     await expect(developerPage.getByText("2 active workspace members")).toBeVisible();
+    await developerPage.getByRole("button", { name: "Overview", exact: true }).click();
     await expect(developerPage.getByRole("button", { name: "Create new project" })).toHaveCount(0);
     const forbiddenProject = await request.post(
       `${apiUrl}/workspaces/${adminAccount.workspace.id}/projects`,
