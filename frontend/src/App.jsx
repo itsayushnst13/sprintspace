@@ -344,19 +344,22 @@ function App() {
   const acceptInvite = async (event) => {
     event.preventDefault();
     setInviteFeedback("");
-    const accepted = await apiRequest("/invitations/accept", {
-      method: "POST", body: JSON.stringify({ token: acceptInviteToken.trim() })
-    });
-    const result = await apiRequest("/workspaces");
-    queryClient.setQueryData(["user-workspaces"], result);
-    const workspace = result.workspaces.find((item) => item.id === accepted.workspaceId);
-    if (workspace && session.user && getAccessToken()) {
-      session.establish(getAccessToken(), session.user, workspace);
-      setActiveNav("Overview");
-      setInviteFeedback("Invitation accepted. Workspace switched successfully.");
-      setAcceptInviteToken("");
-    } else {
-      setInviteFeedback("Invitation accepted. Refresh the workspace list to open it.");
+    try {
+      const accepted = await apiRequest("/invitations/accept", {
+        method: "POST", body: JSON.stringify({ token: acceptInviteToken.trim() })
+      });
+      const result = await apiRequest("/workspaces");
+      queryClient.setQueryData(["user-workspaces"], result);
+      const workspace = result.workspaces.find((item) => item.id === accepted.workspaceId);
+      if (workspace && session.user && getAccessToken()) {
+        session.establish(getAccessToken(), session.user, workspace);
+        setInviteFeedback("Invitation accepted. Workspace switched successfully.");
+        setAcceptInviteToken("");
+      } else {
+        setInviteFeedback("Invitation accepted. Refresh the workspace list to open it.");
+      }
+    } catch (error) {
+      setInviteFeedback(error instanceof Error ? error.message : "Could not accept this invitation. Please check the token and try again.");
     }
   };
   const sendInvite = async (event) => {
