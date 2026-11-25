@@ -17,10 +17,10 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "npm --prefix ../backend run dev",
+      command: "npm --prefix ../backend start",
       url: "http://127.0.0.1:5001/health",
       reuseExistingServer: !isCI,
-      timeout: 60000,
+      timeout: 120_000,
       env: {
         NODE_ENV: "test",
         PORT: "5001",
