@@ -8,28 +8,16 @@ import {
   Plus, Search, Settings2, Target, Users, X, Zap
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { type TaskStatus } from "./data/demo";
 import { useSession } from "./store/session";
 import { AuthScreen } from "./components/AuthScreen";
 import { apiRequest, getAccessToken } from "./lib/api";
-
-type NavItem = { label: string; icon: typeof LayoutDashboard };
-const boardStatuses: TaskStatus[] = ["Todo", "In progress", "In review", "Done"];
-const primaryNav: NavItem[] = [
+const boardStatuses = ["Todo", "In progress", "In review", "Done"];
+const primaryNav = [
   { label: "Overview", icon: LayoutDashboard }, { label: "My tasks", icon: ListTodo },
   { label: "Projects", icon: FolderKanban }, { label: "Calendar", icon: CalendarDays },
   { label: "Board", icon: ListTodo }, { label: "Team", icon: Users }, { label: "Activity", icon: Activity }
 ];
-
-type AnalyticsResponse = { metrics: { projects: number; members: number; tasks: number; completedTasks: number; dueIn24Hours: number; completionRate: number }; tasksByStatus: Array<{ _id: string; count: number }> };
-type ProjectRecord = { _id: string; name: string; description?: string; color?: string; dueDate?: string | null; createdBy?: { _id: string; name: string; email: string } | string };
-type TaskRecord = { _id: string; title: string; projectId: string; status: TaskStatus; priority: "High" | "Medium" | "Low"; assigneeId?: string | null; createdBy?: string; dueDate?: string | null };
-type CommentRecord = { _id: string; body: string; createdAt: string; authorId: { name: string } | string };
-type TeamMember = { _id: string; role: "Admin" | "Manager" | "Developer" | "Member"; userId: { _id: string; name: string; email: string } | string; createdAt: string };
-type InvitationRecord = { _id: string; email: string; role: "Manager" | "Developer" | "Member"; expiresAt: string };
-type ActivityRecord = { _id: string; summary: string; action: string; createdAt: string; actorId: { name: string } | string; entityType?: "project" | "task" | "comment" | "member"; entityId?: string; metadata?: Record<string, unknown> };
-
-function activityEntityLabel(entityType?: ActivityRecord["entityType"]) {
+function activityEntityLabel(entityType) {
   switch (entityType) {
     case "project": return "Project";
     case "task": return "Task";
@@ -39,7 +27,7 @@ function activityEntityLabel(entityType?: ActivityRecord["entityType"]) {
   }
 }
 
-function activityActionIcon(action: string) {
+function activityActionIcon(action) {
   if (action.includes("assigned") || action.includes("invited") || action.includes("joined") || action.includes("member")) {
     return <Users size={19} strokeWidth={2}/>;
   }
@@ -55,7 +43,7 @@ function activityActionIcon(action: string) {
   return <Activity size={19} strokeWidth={2}/>;
 }
 
-function formatActivityTimestamp(value: string) {
+function formatActivityTimestamp(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat(undefined, {
@@ -69,8 +57,8 @@ function App() {
   const bootStarted = useRef(false);
   const [activeNav, setActiveNav] = useState("Overview");
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [commentDraft, setCommentDraft] = useState("");
   const workspaceId = session.workspace?.id;
   const canManageWorkspace = session.workspace?.role === "Admin" || session.workspace?.role === "Manager";
@@ -79,10 +67,10 @@ function App() {
     if (bootStarted.current) return;
     bootStarted.current = true;
     if (session.authenticated) { session.markReady(); return; }
-    apiRequest<{ accessToken: string; user: { id: string; name: string; email: string }; workspace?: { id: string; name: string; slug: string; role?: string }; workspaces?: Array<{ id: string; name: string; slug: string; role: string }> }>("/auth/refresh", { method: "POST" })
+    apiRequest("/auth/refresh", { method: "POST" })
       .then(async (result) => {
         const savedWorkspaceId = localStorage.getItem("sprintspace.workspaceId");
-        const workspaces = result.workspaces ?? (await apiRequest<{ workspaces: Array<{ id: string; name: string; slug: string; role: string }> }>("/workspaces")).workspaces;
+        const workspaces = result.workspaces ?? (await apiRequest("/workspaces")).workspaces;
         const selected = workspaces.find((workspace) => workspace.id === savedWorkspaceId) ?? result.workspace ?? workspaces[0];
         session.establish(result.accessToken, result.user, selected);
       })
@@ -91,15 +79,15 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const handleSearchShortcuts = (event: KeyboardEvent) => {
+    const handleSearchShortcuts = (event) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setSearchOpen((open) => !open);
       }
       if (event.key === "Escape") { setSearchOpen(false); setSearchTerm(""); setNotificationsOpen(false); setProfileOpen(false); setMobileNav(false); }
     };
-    const handleOutsidePointer = (event: PointerEvent) => {
-      const target = event.target as Node;
+    const handleOutsidePointer = (event) => {
+      const target = event.target;
       if (searchWrapRef.current && !searchWrapRef.current.contains(target)) setSearchOpen(false);
       if (profileWrapRef.current && !profileWrapRef.current.contains(target)) setProfileOpen(false);
     };
@@ -112,53 +100,53 @@ function App() {
   }, []);
   const workspacesQuery = useQuery({
     queryKey: ["user-workspaces"],
-    queryFn: () => apiRequest<{ workspaces: Array<{ id: string; name: string; slug: string; role: string }> }>("/workspaces"),
+    queryFn: () => apiRequest("/workspaces"),
     enabled: session.authenticated
   });
   const analyticsQuery = useQuery({
     queryKey: ["workspace-analytics", workspaceId],
-    queryFn: () => apiRequest<AnalyticsResponse>(`/workspaces/${workspaceId}/analytics`),
+    queryFn: () => apiRequest(`/workspaces/${workspaceId}/analytics`),
     enabled: session.authenticated && Boolean(workspaceId)
   });
 
   const projectsQuery = useQuery({
     queryKey: ["workspace-projects", workspaceId],
-    queryFn: () => apiRequest<{ projects: ProjectRecord[] }>(`/workspaces/${workspaceId}/projects`),
+    queryFn: () => apiRequest(`/workspaces/${workspaceId}/projects`),
     enabled: session.authenticated && Boolean(workspaceId)
   });
   const tasksQuery = useQuery({
     queryKey: ["workspace-tasks", workspaceId],
-    queryFn: () => apiRequest<{ tasks: TaskRecord[] }>(`/workspaces/${workspaceId}/tasks`),
+    queryFn: () => apiRequest(`/workspaces/${workspaceId}/tasks`),
     enabled: session.authenticated && Boolean(workspaceId)
   });
   const myTasksQuery = useQuery({
     queryKey: ["workspace-tasks", workspaceId, "mine"],
-    queryFn: () => apiRequest<{ tasks: TaskRecord[] }>(`/workspaces/${workspaceId}/tasks?mine=true`),
+    queryFn: () => apiRequest(`/workspaces/${workspaceId}/tasks?mine=true`),
     enabled: session.authenticated && Boolean(workspaceId)
   });
   const commentsQuery = useQuery({
     queryKey: ["task-comments", workspaceId, selectedTaskId],
-    queryFn: () => apiRequest<{ comments: CommentRecord[] }>(`/workspaces/${workspaceId}/tasks/${selectedTaskId}/comments`),
+    queryFn: () => apiRequest(`/workspaces/${workspaceId}/tasks/${selectedTaskId}/comments`),
     enabled: session.authenticated && Boolean(workspaceId) && Boolean(selectedTaskId)
   });
   const activityQuery = useQuery({
     queryKey: ["workspace-activity", workspaceId],
-    queryFn: () => apiRequest<{ activity: ActivityRecord[] }>(`/workspaces/${workspaceId}/activity`),
+    queryFn: () => apiRequest(`/workspaces/${workspaceId}/activity`),
     enabled: session.authenticated && Boolean(workspaceId) && activeNav === "Activity"
   });
   const teamQuery = useQuery({
     queryKey: ["workspace-team", workspaceId],
-    queryFn: () => apiRequest<{ members: TeamMember[] }>(`/workspaces/${workspaceId}/team/members`),
+    queryFn: () => apiRequest(`/workspaces/${workspaceId}/team/members`),
     enabled: session.authenticated && Boolean(workspaceId)
   });
   const invitationsQuery = useQuery({
     queryKey: ["workspace-invitations", workspaceId],
-    queryFn: () => apiRequest<{ invitations: InvitationRecord[] }>(`/workspaces/${workspaceId}/team/invitations`),
+    queryFn: () => apiRequest(`/workspaces/${workspaceId}/team/invitations`),
     enabled: session.authenticated && Boolean(workspaceId) && (session.workspace?.role === "Admin" || session.workspace?.role === "Manager")
   });
   const notificationsQuery = useQuery({
     queryKey: ["workspace-notifications", workspaceId],
-    queryFn: () => apiRequest<{ notifications: Array<{ _id: string; title: string; body: string; readAt?: string | null; createdAt: string; entityType?: "task" | "project" | "comment"; entityId?: string }>; unreadCount: number }>(`/workspaces/${workspaceId}/notifications`),
+    queryFn: () => apiRequest(`/workspaces/${workspaceId}/notifications`),
     enabled: session.authenticated && Boolean(workspaceId)
   });
 
@@ -195,11 +183,11 @@ function App() {
     socket.on("workspace:access-revoked", async () => {
       const current = useSession.getState();
       try {
-        const available = await apiRequest<{ workspaces: Array<{ id: string; name: string; slug: string; role: string }> }>("/workspaces");
+        const available = await apiRequest("/workspaces");
         const fallback = available.workspaces[0];
-        if (fallback && current.user && getAccessToken()) current.establish(getAccessToken()!, current.user, fallback);
+        if (fallback && current.user && getAccessToken()) current.establish(getAccessToken(), current.user, fallback);
         else {
-          await apiRequest<void>("/auth/logout", { method: "POST" }).catch(() => undefined);
+          await apiRequest("/auth/logout", { method: "POST" }).catch(() => undefined);
           current.clear();
         }
       } catch {
@@ -214,7 +202,7 @@ function App() {
     const saved = Number(window.localStorage.getItem("sprintspace.sidebarWidth"));
     return Number.isFinite(saved) && saved >= 220 && saved <= 380 ? saved : 254;
   });
-  const resizeSidebar = (nextWidth: number) => {
+  const resizeSidebar = (nextWidth) => {
     const boundedWidth = Math.min(380, Math.max(220, nextWidth));
     setSidebarWidth(boundedWidth);
     window.localStorage.setItem("sprintspace.sidebarWidth", String(boundedWidth));
@@ -226,17 +214,17 @@ function App() {
   });
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const searchWrapRef = useRef<HTMLDivElement>(null);
+  const searchWrapRef = useRef(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const profileWrapRef = useRef<HTMLDivElement>(null);
+  const profileWrapRef = useRef(null);
   const [showAll, setShowAll] = useState(false);
   const [taskStatus, setTaskStatus] = useState("All tasks");
   const [taskPriorityFilter, setTaskPriorityFilter] = useState("All priorities");
   const [taskProjectFilter, setTaskProjectFilter] = useState("All projects");
   const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
-  const [expandedCalendarDate, setExpandedCalendarDate] = useState<string | null>(null);
-  const [createModal, setCreateModal] = useState<"project" | "task" | "workspace" | null>(null);
+  const [expandedCalendarDate, setExpandedCalendarDate] = useState(null);
+  const [createModal, setCreateModal] = useState(null);
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectDescription, setNewProjectDescription] = useState("");
   const [newProjectDueDate, setNewProjectDueDate] = useState("");
@@ -247,22 +235,22 @@ function App() {
   const [createTaskError, setCreateTaskError] = useState("");
   const [createTaskSaving, setCreateTaskSaving] = useState(false);
   const [newTaskAssignee, setNewTaskAssignee] = useState("");
-  const [newTaskPriority, setNewTaskPriority] = useState<"Low" | "Medium" | "High">("Medium");
+  const [newTaskPriority, setNewTaskPriority] = useState("Medium");
   const [newTaskDueDate, setNewTaskDueDate] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<"Manager" | "Developer">("Developer");
+  const [inviteRole, setInviteRole] = useState("Developer");
   const [inviteToken, setInviteToken] = useState("");
   const [acceptInviteToken, setAcceptInviteToken] = useState("");
   const [inviteFeedback, setInviteFeedback] = useState("");
-  const [editTaskStatus, setEditTaskStatus] = useState<TaskStatus>("Todo");
-  const [editTaskPriority, setEditTaskPriority] = useState<"Low" | "Medium" | "High">("Medium");
+  const [editTaskStatus, setEditTaskStatus] = useState("Todo");
+  const [editTaskPriority, setEditTaskPriority] = useState("Medium");
   const [editTaskDueDate, setEditTaskDueDate] = useState("");
   const [editTaskAssignee, setEditTaskAssignee] = useState("");
   const [saveTaskError, setSaveTaskError] = useState("");
   const [saveTaskSaving, setSaveTaskSaving] = useState(false);
 
-  const taskDueDateKey = (value: string) => value.slice(0, 10);
-  const formatTaskDueDate = (value: string) => {
+  const taskDueDateKey = (value) => value.slice(0, 10);
+  const formatTaskDueDate = (value) => {
     const [year, month, day] = taskDueDateKey(value).split("-").map(Number);
     return new Date(year, month - 1, day).toLocaleDateString();
   };
@@ -316,22 +304,22 @@ function App() {
   ).slice(0, showAll ? taskRows.length : 5), [taskRows, taskStatus, taskPriorityFilter, taskProjectFilter, showAll]);
   const myTaskIds = new Set((myTasksQuery.data?.tasks ?? []).map((task) => task._id));
   const myTaskRows = taskRows.filter((task) => myTaskIds.has(task.taskId));
-  const calendarRows = taskRows.filter((task) => task.dueDate).sort((a, b) => taskDueDateKey(a.dueDate!).localeCompare(taskDueDateKey(b.dueDate!)));
+  const calendarRows = taskRows.filter((task) => task.dueDate).sort((a, b) => taskDueDateKey(a.dueDate).localeCompare(taskDueDateKey(b.dueDate)));
   const unscheduledTasks = taskRows.filter((task) => !task.dueDate);
   const calendarMonthKey = `${calendarMonth.getFullYear()}-${String(calendarMonth.getMonth() + 1).padStart(2, "0")}`;
-  const calendarMonthTaskCount = calendarRows.filter((task) => taskDueDateKey(task.dueDate!).startsWith(calendarMonthKey)).length;
+  const calendarMonthTaskCount = calendarRows.filter((task) => taskDueDateKey(task.dueDate).startsWith(calendarMonthKey)).length;
   const selectedTask = tasksQuery.data?.tasks.find((task) => task._id === selectedTaskId);
   const selectedProject = projectRows.find((project) => project.id === selectedProjectId);
   const calendarGridStart = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1 - ((calendarMonth.getDay() + 6) % 7));
   const calendarDays = Array.from({ length: 42 }, (_, index) => new Date(calendarGridStart.getFullYear(), calendarGridStart.getMonth(), calendarGridStart.getDate() + index));
-  const calendarDateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const calendarDateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
   if (!session.ready) return <div className="auth-loading"><div className="brand-mark"><Command size={19}/></div><span>Restoring your workspace…</span></div>;
   if (!session.authenticated) return <AuthScreen />;
 
-  const switchWorkspace = (workspace: { id: string; name: string; slug: string; role: string }) => {
+  const switchWorkspace = (workspace) => {
     if (!session.user || !getAccessToken()) return;
-    session.establish(getAccessToken()!, session.user, workspace);
+    session.establish(getAccessToken(), session.user, workspace);
     setWorkspaceMenuOpen(false);
     setActiveNav("Overview");
     setSelectedProjectId(null);
@@ -339,13 +327,13 @@ function App() {
     setMobileNav(false);
     setSearchOpen(false);
   };
-  const moveTask = async (taskId: string, status: TaskStatus) => {
+  const moveTask = async (taskId, status) => {
     await apiRequest(`/workspaces/${workspaceId}/tasks/${taskId}`, {
       method: "PATCH", body: JSON.stringify({ status })
     });
     await Promise.all([tasksQuery.refetch(), analyticsQuery.refetch()]);
   };
-  const completeTask = async (id: string) => {
+  const completeTask = async (id) => {
     const task = taskRows.find((item) => item.id === id);
     if (!task || !task.canUpdateStatus) return;
     await apiRequest(`/workspaces/${workspaceId}/tasks/${task.taskId}`, {
@@ -353,17 +341,17 @@ function App() {
     });
     await Promise.all([tasksQuery.refetch(), analyticsQuery.refetch()]);
   };
-  const acceptInvite = async (event: React.FormEvent<HTMLFormElement>) => {
+  const acceptInvite = async (event) => {
     event.preventDefault();
     setInviteFeedback("");
-    const accepted = await apiRequest<{ workspaceId: string; role: string }>("/invitations/accept", {
+    const accepted = await apiRequest("/invitations/accept", {
       method: "POST", body: JSON.stringify({ token: acceptInviteToken.trim() })
     });
-    const result = await apiRequest<{ workspaces: Array<{ id: string; name: string; slug: string; role: string }> }>("/workspaces");
+    const result = await apiRequest("/workspaces");
     queryClient.setQueryData(["user-workspaces"], result);
     const workspace = result.workspaces.find((item) => item.id === accepted.workspaceId);
     if (workspace && session.user && getAccessToken()) {
-      session.establish(getAccessToken()!, session.user, workspace);
+      session.establish(getAccessToken(), session.user, workspace);
       setActiveNav("Overview");
       setInviteFeedback("Invitation accepted. Workspace switched successfully.");
       setAcceptInviteToken("");
@@ -371,17 +359,17 @@ function App() {
       setInviteFeedback("Invitation accepted. Refresh the workspace list to open it.");
     }
   };
-  const sendInvite = async (event: React.FormEvent<HTMLFormElement>) => {
+  const sendInvite = async (event) => {
     event.preventDefault();
     if (!inviteEmail.trim()) return;
-    const result = await apiRequest<{ inviteToken: string }>(`/workspaces/${workspaceId}/team/invitations`, {
+    const result = await apiRequest(`/workspaces/${workspaceId}/team/invitations`, {
       method: "POST", body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole })
     });
     setInviteToken(result.inviteToken);
     setInviteEmail("");
     await invitationsQuery.refetch();
   };
-  const openTask = (taskId: string) => {
+  const openTask = (taskId) => {
     const task = tasksQuery.data?.tasks.find((item) => item._id === taskId);
     if (!task) return;
     setSelectedProjectId(null);
@@ -392,11 +380,11 @@ function App() {
     setEditTaskAssignee(task.assigneeId ?? "");
     setSaveTaskError("");
   };
-  const openProject = (projectId: string) => {
+  const openProject = (projectId) => {
     setSelectedTaskId(null);
     setSelectedProjectId(projectId);
   };
-  const createTaskForProject = (projectId: string) => {
+  const createTaskForProject = (projectId) => {
     setNewTaskProjectId(projectId);
     setNewTaskTitle("");
     setNewTaskPriority("Medium");
@@ -407,29 +395,29 @@ function App() {
     setSelectedProjectId(null);
     setCreateModal("task");
   };
-  const openActivityItem = (item: ActivityRecord) => {
+  const openActivityItem = (item) => {
     if (item.entityType === "task" && item.entityId) openTask(item.entityId);
     else if (item.entityType === "project" && item.entityId) openProject(item.entityId);
     else if (item.entityType === "comment" && typeof item.metadata?.taskId === "string") openTask(item.metadata.taskId);
     else if (item.entityType === "member") setActiveNav("Team");
   };
-  const archiveProject = async (projectId: string) => {
+  const archiveProject = async (projectId) => {
     if (!window.confirm("Archive this project? Its tasks will remain in workspace history.")) return;
     await apiRequest(`/workspaces/${workspaceId}/projects/${projectId}`, { method: "DELETE" });
     await Promise.all([projectsQuery.refetch(), analyticsQuery.refetch()]);
   };
-  const createWorkspace = async (event: React.FormEvent<HTMLFormElement>) => {
+  const createWorkspace = async (event) => {
     event.preventDefault();
     if (!newWorkspaceName.trim()) return;
-    const result = await apiRequest<{ workspace: { id: string; name: string; slug: string; role: string } }>("/workspaces", {
+    const result = await apiRequest("/workspaces", {
       method: "POST", body: JSON.stringify({ name: newWorkspaceName.trim() })
     });
     setNewWorkspaceName("");
     setCreateModal(null);
-    if (session.user && getAccessToken()) session.establish(getAccessToken()!, session.user, result.workspace);
+    if (session.user && getAccessToken()) session.establish(getAccessToken(), session.user, result.workspace);
     await workspacesQuery.refetch();
   };
-  const createProject = async (event: React.FormEvent<HTMLFormElement>) => {
+  const createProject = async (event) => {
     event.preventDefault();
     if (!newProjectName.trim()) return;
     await apiRequest(`/workspaces/${workspaceId}/projects`, {
@@ -459,7 +447,7 @@ function App() {
     if (!newProjectForTaskName.trim()) return;
     setCreateTaskError("");
     try {
-      const result = await apiRequest<{ project: ProjectRecord }>(`/workspaces/${workspaceId}/projects`, {
+      const result = await apiRequest(`/workspaces/${workspaceId}/projects`, {
         method: "POST", body: JSON.stringify({ name: newProjectForTaskName.trim() })
       });
       setNewTaskProjectId(result.project._id);
@@ -472,7 +460,7 @@ function App() {
       setCreateTaskError(error instanceof Error ? error.message : "Could not create the project. Please try again.");
     }
   };
-  const createTask = async (event: React.FormEvent<HTMLFormElement>) => {
+  const createTask = async (event) => {
     event.preventDefault();
     if (!newTaskTitle.trim()) return;
     if (!newTaskProjectId) {
@@ -503,7 +491,7 @@ function App() {
   };
   const deleteTask = async () => {
     if (!selectedTaskId || !window.confirm("Delete this task and its comments? This cannot be undone.")) return;
-    await apiRequest<void>(`/workspaces/${workspaceId}/tasks/${selectedTaskId}`, { method: "DELETE" });
+    await apiRequest(`/workspaces/${workspaceId}/tasks/${selectedTaskId}`, { method: "DELETE" });
     setSelectedTaskId(null);
     await Promise.all([tasksQuery.refetch(), analyticsQuery.refetch(), activityQuery.refetch()]);
   };
@@ -531,7 +519,7 @@ function App() {
       setSaveTaskSaving(false);
     }
   };
-  const submitComment = async (event: React.FormEvent<HTMLFormElement>) => {
+  const submitComment = async (event) => {
     event.preventDefault();
     if (!selectedTaskId || !commentDraft.trim()) return;
     await apiRequest(`/workspaces/${workspaceId}/tasks/${selectedTaskId}/comments`, { method: "POST", body: JSON.stringify({ body: commentDraft.trim() }) });
@@ -539,7 +527,7 @@ function App() {
     await commentsQuery.refetch();
   };
   const logout = async () => {
-    await apiRequest<void>("/auth/logout", { method: "POST" }).catch(() => undefined);
+    await apiRequest("/auth/logout", { method: "POST" }).catch(() => undefined);
     queryClient.clear();
     session.clear();
   };
@@ -547,7 +535,7 @@ function App() {
 
   return <div className="app-shell">
     {mobileNav && <button className="mobile-scrim" aria-label="Close navigation" onClick={() => setMobileNav(false)} />}
-    <aside className={`sidebar ${mobileNav ? "sidebar-open" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`} style={{ "--sidebar-width": `${sidebarWidth}px` } as React.CSSProperties}>
+    <aside className={`sidebar ${mobileNav ? "sidebar-open" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`} style={{ "--sidebar-width": `${sidebarWidth}px` }}>
       <div className="brand-lockup"><div className="brand-mark"><Command size={19} strokeWidth={2.5} /></div><span>Sprint<span className="brand-light">Space</span></span><button className="sidebar-collapse-toggle" onClick={toggleSidebar} aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} aria-expanded={!sidebarCollapsed} title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}><ChevronLeft size={18}/></button></div>
       <div className="workspace-switch-wrap"><button className="workspace-switch" onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}><div className="workspace-avatar">{(session.workspace?.name ?? "W").slice(0,1).toUpperCase()}</div><div className="workspace-meta"><strong>{session.workspace?.name ?? "My workspace"}</strong><span>{session.workspace?.role === "Member" ? "Developer" : session.workspace?.role ?? "Workspace member"}</span></div><ChevronDown size={16} className="subtle-icon" /></button>{workspaceMenuOpen && <div className="workspace-menu">{(workspacesQuery.data?.workspaces ?? []).map((workspace) => <button key={workspace.id} className={workspace.id === workspaceId ? "selected" : ""} onClick={() => switchWorkspace(workspace)}><strong>{workspace.name}</strong><span>{workspace.role === "Member" ? "Developer" : workspace.role}</span></button>)}<button className="workspace-create" onClick={() => { setWorkspaceMenuOpen(false); setCreateModal("workspace"); }}><Plus size={13}/> Create workspace</button></div>}</div>
       <div className="sidebar-scroll-region">
@@ -574,7 +562,7 @@ function App() {
         }}
       />
     </aside>
-    <main className="main-panel" style={{ "--sidebar-width": `${sidebarCollapsed ? 88 : sidebarWidth}px` } as React.CSSProperties}>
+    <main className="main-panel" style={{ "--sidebar-width": `${sidebarCollapsed ? 88 : sidebarWidth}px` }}>
       <header className="topbar"><div className="topbar-left"><div className="breadcrumb"><button type="button" className="breadcrumb-workspace-trigger" onClick={() => { setActiveNav("Overview"); setSelectedProjectId(null); setSelectedTaskId(null); setMobileNav(false); }} aria-label="Go to workspace overview" title="Go to workspace overview">Workspace</button><ChevronRight size={18}/><button type="button" className="breadcrumb-current-trigger" aria-current="page" onClick={() => { setActiveNav(activeNav); setSelectedProjectId(null); setSelectedTaskId(null); setMobileNav(false); }} aria-label={`Go to ${activeNav}`} title={`Go to ${activeNav}`}>{activeNav}</button></div></div><div className="topbar-actions"><div className="search-wrap" ref={searchWrapRef}><button className={`search-trigger ${searchOpen ? "search-trigger-open" : ""}`} onClick={() => setSearchOpen((open) => !open)} aria-expanded={searchOpen} aria-controls="global-search-panel"><Search size={20} strokeWidth={2}/><span>Search anything...</span><kbd>⌘ K</kbd></button>{searchOpen && <div className="search-panel" id="global-search-panel" role="search"><div className="search-input-row"><Search size={20}/><input autoFocus value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search projects and tasks..."/><button aria-label="Close search" onClick={() => { setSearchOpen(false); setSearchTerm(""); }}><X size={19}/></button></div>{searchTerm.trim() && <div className="search-results">{projectRows.filter((project) => project.name.toLowerCase().includes(searchTerm.toLowerCase())).slice(0,4).map((project) => <button key={project.id} onClick={() => {openProject(project.id);setActiveNav("Projects");setSearchOpen(false);setSearchTerm("");}}><FolderKanban size={18}/><span>{project.name}</span><small>Project</small></button>)}{taskRows.filter((task) => task.title.toLowerCase().includes(searchTerm.toLowerCase())).slice(0,5).map((task) => <button key={task.taskId} onClick={() => {openTask(task.taskId);setSearchOpen(false);setSearchTerm("");}}><ListTodo size={18}/><span>{task.title}</span><small>Task</small></button>)}{projectRows.every((project) => !project.name.toLowerCase().includes(searchTerm.toLowerCase())) && taskRows.every((task) => !task.title.toLowerCase().includes(searchTerm.toLowerCase())) && <p>No matching projects or tasks.</p>}</div>}</div>}</div><div className="popover-wrap"><button className="icon-button notification-button" onClick={()=>setNotificationsOpen(!notificationsOpen)} aria-label="Notifications"><Bell size={23} strokeWidth={1.9}/>{(notificationsQuery.data?.unreadCount ?? 0) > 0 && <span className="notification-count">{notificationsQuery.data?.unreadCount}</span>}</button>{notificationsOpen&&<div className="popover notification-popover"><strong>Notifications ({notificationsQuery.data?.unreadCount ?? 0} unread)</strong>{(notificationsQuery.data?.notifications ?? []).length===0?<p>No new notifications.</p>:(notificationsQuery.data?.notifications ?? []).map((notification)=><button key={notification._id} className={`notification-item ${notification.readAt ? "read" : ""}`} onClick={async()=>{if(!notification.readAt){await apiRequest(`/workspaces/${workspaceId}/notifications/${notification._id}/read`,{method:"PATCH"});await notificationsQuery.refetch();}if(notification.entityType==="task"&&notification.entityId){const refreshed=await tasksQuery.refetch();const task=refreshed.data?.tasks.find((item)=>item._id===notification.entityId);if(task){setSelectedTaskId(task._id);setEditTaskStatus(task.status);setEditTaskPriority(task.priority);setEditTaskDueDate(task.dueDate?taskDueDateKey(task.dueDate):"");setEditTaskAssignee(task.assigneeId??"");setSaveTaskError("");}}}}><b>{notification.title}</b><span>{notification.body}</span></button>)}</div>}</div><div className="popover-wrap profile-wrap" ref={profileWrapRef}>  <button type="button" className="profile-trigger" onClick={() => setProfileOpen((open) => !open)} aria-label="Open your user details" aria-haspopup="dialog" aria-expanded={profileOpen}>    <span className="avatar avatar-small avatar-profile">{initials}</span>  </button>  {profileOpen && <div className="popover profile-popover" role="dialog" aria-label="Your user details">    <div className="profile-popover-heading"><span className="avatar avatar-profile profile-popover-avatar">{initials}</span><div><strong>{session.user?.name ?? "User"}</strong><span>{session.user?.email ?? ""}</span></div></div>    <div className="profile-detail-list">      <div><span>Current workspace</span><strong>{session.workspace?.name ?? "No workspace selected"}</strong></div>      <div><span>Your role</span><strong>{session.workspace?.role === "Member" ? "Developer" : session.workspace?.role ?? "Workspace member"}</strong></div>    </div>    <button type="button" className="profile-popover-action" onClick={() => { setActiveNav("Settings"); setProfileOpen(false); }}><Settings2 size={17}/> Account settings</button>    <button type="button" className="profile-popover-action profile-signout" onClick={() => { setProfileOpen(false); void logout(); }}><LogOut size={17}/> Sign out</button>  </div>}</div></div></header>
       
       <div className="content-wrap">{activeNav === "Team" ? <>
@@ -583,7 +571,7 @@ function App() {
           {teamQuery.isLoading ? <p className="team-empty">Loading members…</p> : <div className="team-list">{(teamQuery.data?.members ?? []).map((member) => { const user = typeof member.userId === "object" ? member.userId : null; return <div className="team-row" key={member._id}><div className="avatar avatar-profile">{user?.name?.split(" ").map((part) => part[0]).slice(0,2).join("") ?? "U"}</div><div className="team-identity"><strong>{user?.name ?? "Workspace member"}</strong><span>{user?.email ?? ""}</span></div><span className={`role-pill role-${member.role === "Member" ? "developer" : member.role.toLowerCase()}`}>{member.role === "Member" ? "Developer" : member.role}</span>{session.workspace?.role === "Admin" && member.role !== "Admin" && <select className="member-role-select" value={member.role} aria-label={`Change role for ${user?.name ?? "member"}`} onChange={async (event) => { await apiRequest(`/workspaces/${workspaceId}/team/members/${member._id}/role`, { method: "PATCH", body: JSON.stringify({ role: event.target.value }) }); await teamQuery.refetch(); }}><option value="Developer">Developer</option><option value="Member">Legacy Member</option><option value="Manager">Manager</option></select>}{(session.workspace?.role === "Admin" || (session.workspace?.role === "Manager" && (member.role === "Member" || member.role === "Developer")) || user?._id === session.user?.id) && member.role !== "Admin" && <button className="text-button member-remove" onClick={async () => { if (!window.confirm(`Remove ${user?.name ?? "this member"} from the workspace?`)) return; await apiRequest(`/workspaces/${workspaceId}/team/members/${member._id}`, { method: "DELETE" }); await teamQuery.refetch(); }}>Remove</button>}</div>; })}</div>}
         </section>
         <section className="surface team-panel"><div className="section-heading"><div><h2>Have an invitation?</h2><p>Paste the one-time invitation token you received to join another workspace.</p></div></div><form className="invite-form" onSubmit={acceptInvite}><input value={acceptInviteToken} onChange={(event) => setAcceptInviteToken(event.target.value)} placeholder="Paste invitation token" required/><button className="primary-button" disabled={!acceptInviteToken.trim()}>Accept invite <ArrowRight size={15}/></button></form>{inviteFeedback && <p className="team-feedback">{inviteFeedback}</p>}</section>
-        {canManageWorkspace && <section className="surface team-panel"><div className="section-heading"><div><h2>Invite a teammate</h2><p>Invitations expire after 7 days. Email delivery is not configured yet.</p></div></div><form className="invite-form" onSubmit={sendInvite}><input type="email" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="teammate@company.com" required/><select value={inviteRole} onChange={(event) => setInviteRole(event.target.value as "Manager" | "Developer")}><option value="Developer">Developer</option>{session.workspace?.role === "Admin" && <option value="Manager">Manager</option>}</select><button className="primary-button" disabled={!inviteEmail.trim()}><Plus size={15}/> Create invite</button></form>{inviteToken && <div className="invite-token"><strong>One-time invite token</strong><code>{inviteToken}</code><button className="text-button" onClick={() => void navigator.clipboard.writeText(inviteToken)}>Copy token</button><p>Share this token securely. The invitee must sign in with the invited email and accept it through the invitation API.</p></div>}<div className="pending-invites"><h3>Pending invitations</h3>{(invitationsQuery.data?.invitations ?? []).length === 0 ? <p className="team-empty">No pending invitations.</p> : invitationsQuery.data?.invitations.map((invitation) => <div className="team-row" key={invitation._id}><div className="team-identity"><strong>{invitation.email}</strong><span>Expires {new Date(invitation.expiresAt).toLocaleDateString()}</span></div><span className={`role-pill role-${invitation.role === "Member" ? "developer" : invitation.role.toLowerCase()}`}>{invitation.role === "Member" ? "Developer" : invitation.role}</span><button className="text-button member-remove" onClick={async () => { await apiRequest(`/workspaces/${workspaceId}/team/invitations/${invitation._id}`, { method: "DELETE" }); await invitationsQuery.refetch(); }}>Revoke</button></div>)}</div></section>}
+        {canManageWorkspace && <section className="surface team-panel"><div className="section-heading"><div><h2>Invite a teammate</h2><p>Invitations expire after 7 days. Email delivery is not configured yet.</p></div></div><form className="invite-form" onSubmit={sendInvite}><input type="email" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="teammate@company.com" required/><select value={inviteRole} onChange={(event) => setInviteRole(event.target.value)}><option value="Developer">Developer</option>{session.workspace?.role === "Admin" && <option value="Manager">Manager</option>}</select><button className="primary-button" disabled={!inviteEmail.trim()}><Plus size={15}/> Create invite</button></form>{inviteToken && <div className="invite-token"><strong>One-time invite token</strong><code>{inviteToken}</code><button className="text-button" onClick={() => void navigator.clipboard.writeText(inviteToken)}>Copy token</button><p>Share this token securely. The invitee must sign in with the invited email and accept it through the invitation API.</p></div>}<div className="pending-invites"><h3>Pending invitations</h3>{(invitationsQuery.data?.invitations ?? []).length === 0 ? <p className="team-empty">No pending invitations.</p> : invitationsQuery.data?.invitations.map((invitation) => <div className="team-row" key={invitation._id}><div className="team-identity"><strong>{invitation.email}</strong><span>Expires {new Date(invitation.expiresAt).toLocaleDateString()}</span></div><span className={`role-pill role-${invitation.role === "Member" ? "developer" : invitation.role.toLowerCase()}`}>{invitation.role === "Member" ? "Developer" : invitation.role}</span><button className="text-button member-remove" onClick={async () => { await apiRequest(`/workspaces/${workspaceId}/team/invitations/${invitation._id}`, { method: "DELETE" }); await invitationsQuery.refetch(); }}>Revoke</button></div>)}</div></section>}
       </> : activeNav === "Board" ? <>
         <section className="welcome-row"><div><div className="eyebrow"><span className="live-dot"/> TASK WORKFLOW</div><h1>Kanban board <span className="wave">✦</span></h1><p>Move work forward by dragging tasks between stages.</p></div><button className="primary-button" onClick={openCreateTask}><Plus size={16}/> New task</button></section>
         <section className="kanban-board">{boardStatuses.map((status) => { const cards = taskRows.filter((task) => task.status === status); return <div className="kanban-column" key={status} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const taskId = event.dataTransfer.getData("text/plain"); const task = taskRows.find((item) => item.taskId === taskId); if (task?.canUpdateStatus) void moveTask(taskId, status); }}><div className="kanban-column-head"><span className={`kanban-status-dot ${status.toLowerCase().replace(" ","-")}`}/><strong>{status}</strong><span>{cards.length}</span></div>{cards.map((task) => <article className="kanban-task-card" key={task.taskId} draggable={task.canUpdateStatus} onDragStart={(event) => { if (task.canUpdateStatus) event.dataTransfer.setData("text/plain", task.taskId); }}><button className="task-open" onClick={() => openTask(task.taskId)}>{task.title}</button><span>{task.project}</span><small>{task.assignee === "Unassigned" ? "Unassigned" : `Assigned to ${task.assignee}`}</small><div><PriorityPill priority={task.priority}/><small>{task.due}</small></div></article>)}{cards.length === 0 && <p className="kanban-empty">Drop a task here</p>}</div>; })}</section>
@@ -645,7 +633,7 @@ function App() {
         <label>Description (optional)<textarea value={newProjectDescription} onChange={(event) => setNewProjectDescription(event.target.value)} placeholder="What is this project meant to deliver?" maxLength={2000} rows={3}/></label>
         <label>Project deadline (optional)<input type="date" value={newProjectDueDate} onChange={(event) => setNewProjectDueDate(event.target.value)}/></label>
         <button className="primary-button" disabled={!newProjectName.trim()}>Create project <ArrowRight size={14}/></button>
-      </form> : createModal === "task" ? <form className="create-form" onSubmit={createTask}><label>Task title<input autoFocus value={newTaskTitle} onChange={(event) => setNewTaskTitle(event.target.value)} placeholder="What needs to get done?" minLength={2} maxLength={180} required/></label>{projectRows.length === 0 ? <div className="task-project-setup">{(session.workspace?.role === "Developer" || session.workspace?.role === "Member") ? <p>This workspace has no active projects. Ask a workspace Admin or Manager to create a project before adding tasks.</p> : <><p>This workspace has no projects yet. Create your first project here, then your task will stay in this form.</p><label>First project name<input value={newProjectForTaskName} onChange={(event) => setNewProjectForTaskName(event.target.value)} placeholder="e.g. Payments or Website" minLength={2} maxLength={120}/></label><button type="button" className="secondary-button" onClick={() => void createProjectForTask()} disabled={newProjectForTaskName.trim().length < 2}>Create project</button></>}</div> : <label>Project<select value={newTaskProjectId} onChange={(event) => setNewTaskProjectId(event.target.value)} required><option value="">Choose a project</option>{projectRows.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>}<label>Priority<select value={newTaskPriority} onChange={(event) => setNewTaskPriority(event.target.value as "Low" | "Medium" | "High")}><option>Low</option><option>Medium</option><option>High</option></select></label>{canManageWorkspace ? <label>Assign to developer<select value={newTaskAssignee} onChange={(event) => setNewTaskAssignee(event.target.value)} required><option value="">Choose a developer</option>{(teamQuery.data?.members ?? []).filter((member) => member.role === "Developer" || member.role === "Member").map((member) => { const user = typeof member.userId === "object" ? member.userId : null; return user ? <option key={member._id} value={user._id}>{user.name}</option> : null; })}</select>{teamQuery.isLoading ? <small className="field-hint">Loading developers…</small> : !(teamQuery.data?.members ?? []).some((member) => member.role === "Developer" || member.role === "Member") && <small className="field-hint">No developers yet. Invite one from Team before creating a task.</small>}</label> : <div className="task-self-assignment">Assigned to <strong>{session.user?.name}</strong></div>}<label>Due date (optional)<input type="date" value={newTaskDueDate} onChange={(event) => setNewTaskDueDate(event.target.value)}/></label>{createTaskError && <p className="form-error" role="alert">{createTaskError}</p>}<button className="primary-button" disabled={!newTaskTitle.trim() || !newTaskProjectId || !newTaskAssignee || createTaskSaving}>{createTaskSaving ? "Creating task…" : "Create task"} <ArrowRight size={14}/></button></form> : <form className="create-form" onSubmit={createWorkspace}><label>Workspace name<input autoFocus value={newWorkspaceName} onChange={(event) => setNewWorkspaceName(event.target.value)} placeholder="e.g. Product team" minLength={2} maxLength={80} required/></label><button className="primary-button" disabled={!newWorkspaceName.trim()}>Create workspace <ArrowRight size={14}/></button></form>}</section></div>}
+      </form> : createModal === "task" ? <form className="create-form" onSubmit={createTask}><label>Task title<input autoFocus value={newTaskTitle} onChange={(event) => setNewTaskTitle(event.target.value)} placeholder="What needs to get done?" minLength={2} maxLength={180} required/></label>{projectRows.length === 0 ? <div className="task-project-setup">{(session.workspace?.role === "Developer" || session.workspace?.role === "Member") ? <p>This workspace has no active projects. Ask a workspace Admin or Manager to create a project before adding tasks.</p> : <><p>This workspace has no projects yet. Create your first project here, then your task will stay in this form.</p><label>First project name<input value={newProjectForTaskName} onChange={(event) => setNewProjectForTaskName(event.target.value)} placeholder="e.g. Payments or Website" minLength={2} maxLength={120}/></label><button type="button" className="secondary-button" onClick={() => void createProjectForTask()} disabled={newProjectForTaskName.trim().length < 2}>Create project</button></>}</div> : <label>Project<select value={newTaskProjectId} onChange={(event) => setNewTaskProjectId(event.target.value)} required><option value="">Choose a project</option>{projectRows.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>}<label>Priority<select value={newTaskPriority} onChange={(event) => setNewTaskPriority(event.target.value)}><option>Low</option><option>Medium</option><option>High</option></select></label>{canManageWorkspace ? <label>Assign to developer<select value={newTaskAssignee} onChange={(event) => setNewTaskAssignee(event.target.value)} required><option value="">Choose a developer</option>{(teamQuery.data?.members ?? []).filter((member) => member.role === "Developer" || member.role === "Member").map((member) => { const user = typeof member.userId === "object" ? member.userId : null; return user ? <option key={member._id} value={user._id}>{user.name}</option> : null; })}</select>{teamQuery.isLoading ? <small className="field-hint">Loading developers…</small> : !(teamQuery.data?.members ?? []).some((member) => member.role === "Developer" || member.role === "Member") && <small className="field-hint">No developers yet. Invite one from Team before creating a task.</small>}</label> : <div className="task-self-assignment">Assigned to <strong>{session.user?.name}</strong></div>}<label>Due date (optional)<input type="date" value={newTaskDueDate} onChange={(event) => setNewTaskDueDate(event.target.value)}/></label>{createTaskError && <p className="form-error" role="alert">{createTaskError}</p>}<button className="primary-button" disabled={!newTaskTitle.trim() || !newTaskProjectId || !newTaskAssignee || createTaskSaving}>{createTaskSaving ? "Creating task…" : "Create task"} <ArrowRight size={14}/></button></form> : <form className="create-form" onSubmit={createWorkspace}><label>Workspace name<input autoFocus value={newWorkspaceName} onChange={(event) => setNewWorkspaceName(event.target.value)} placeholder="e.g. Product team" minLength={2} maxLength={80} required/></label><button className="primary-button" disabled={!newWorkspaceName.trim()}>Create workspace <ArrowRight size={14}/></button></form>}</section></div>}
     {selectedProject && <div className="modal-scrim" onClick={() => setSelectedProjectId(null)}><section className="project-detail-modal" onClick={(event) => event.stopPropagation()}>
       <div className="comment-modal-head"><div><span>PROJECT DETAILS</span><h2>{selectedProject.name}</h2></div><button className="icon-button" onClick={() => setSelectedProjectId(null)} aria-label="Close project details"><X size={18}/></button></div>
       <div className="project-detail-content">
@@ -660,18 +648,18 @@ function App() {
       </div>
       <div className="project-detail-footer"><span>{selectedProject.tasks} total tasks</span>{session.workspace?.role === "Admin" && <button className="danger-button" onClick={() => { setSelectedProjectId(null); void archiveProject(selectedProject.id); }}><Archive size={14}/> Archive project</button>}</div>
     </section></div>}
-    {selectedTaskId && <div className="modal-scrim" onClick={() => setSelectedTaskId(null)}><section className="comment-modal" onClick={(event) => event.stopPropagation()}><div className="comment-modal-head"><div><span>TASK DISCUSSION</span><h2>{taskRows.find((task) => task.taskId === selectedTaskId)?.title ?? "Task comments"}</h2></div><button className="icon-button" onClick={() => setSelectedTaskId(null)} aria-label="Close comments"><X size={18}/></button></div>{(canManageWorkspace || selectedTask?.createdBy === session.user?.id || selectedTask?.assigneeId === session.user?.id) && <div className="task-edit-fields"><label>Status<select value={editTaskStatus} onChange={(event) => setEditTaskStatus(event.target.value as TaskStatus)}><option>Todo</option><option>In progress</option><option>In review</option><option>Done</option></select></label>{(canManageWorkspace || selectedTask?.createdBy === session.user?.id) && <><label>Priority<select value={editTaskPriority} onChange={(event) => setEditTaskPriority(event.target.value as "Low" | "Medium" | "High")}><option>Low</option><option>Medium</option><option>High</option></select></label>{canManageWorkspace && <label>Assignee<select value={editTaskAssignee} onChange={(event) => setEditTaskAssignee(event.target.value)}><option value="" disabled>Choose a developer</option>{(teamQuery.data?.members ?? []).filter((member) => member.role === "Developer" || member.role === "Member").map((member) => { const user = typeof member.userId === "object" ? member.userId : null; return user ? <option key={member._id} value={user._id}>{user.name}</option> : null; })}</select></label>}<label>Due date<input type="date" value={editTaskDueDate} onChange={(event) => setEditTaskDueDate(event.target.value)}/></label></> }{saveTaskError && <p className="form-error" role="alert">{saveTaskError}</p>}<button className="primary-button" disabled={saveTaskSaving} onClick={() => void saveTaskDetails()}>{saveTaskSaving ? "Saving..." : "Save task details"}</button>{(session.workspace?.role === "Admin" || session.workspace?.role === "Manager") && <button className="danger-button" onClick={() => void deleteTask()}>Delete task</button>}</div>}<div className="comment-list">{(commentsQuery.data?.comments ?? []).map((comment) => <article className="comment-item" key={comment._id}><div className="comment-avatar">{typeof comment.authorId === "object" ? comment.authorId.name.slice(0,1).toUpperCase() : "T"}</div><div><strong>{typeof comment.authorId === "object" ? comment.authorId.name : "Teammate"}</strong><time>{new Date(comment.createdAt).toLocaleString()}</time><p>{comment.body}</p></div></article>)}{commentsQuery.isLoading && <p className="comment-empty">Loading discussion…</p>}{!commentsQuery.isLoading && (commentsQuery.data?.comments.length ?? 0)===0 && <p className="comment-empty">No comments yet. Start the conversation.</p>}</div><form className="comment-form" onSubmit={submitComment}><textarea value={commentDraft} onChange={(event) => setCommentDraft(event.target.value)} placeholder="Write a comment…" maxLength={4000}/><button className="primary-button" disabled={!commentDraft.trim()}>Send comment <ArrowRight size={14}/></button></form></section></div>}
+    {selectedTaskId && <div className="modal-scrim" onClick={() => setSelectedTaskId(null)}><section className="comment-modal" onClick={(event) => event.stopPropagation()}><div className="comment-modal-head"><div><span>TASK DISCUSSION</span><h2>{taskRows.find((task) => task.taskId === selectedTaskId)?.title ?? "Task comments"}</h2></div><button className="icon-button" onClick={() => setSelectedTaskId(null)} aria-label="Close comments"><X size={18}/></button></div>{(canManageWorkspace || selectedTask?.createdBy === session.user?.id || selectedTask?.assigneeId === session.user?.id) && <div className="task-edit-fields"><label>Status<select value={editTaskStatus} onChange={(event) => setEditTaskStatus(event.target.value)}><option>Todo</option><option>In progress</option><option>In review</option><option>Done</option></select></label>{(canManageWorkspace || selectedTask?.createdBy === session.user?.id) && <><label>Priority<select value={editTaskPriority} onChange={(event) => setEditTaskPriority(event.target.value)}><option>Low</option><option>Medium</option><option>High</option></select></label>{canManageWorkspace && <label>Assignee<select value={editTaskAssignee} onChange={(event) => setEditTaskAssignee(event.target.value)}><option value="" disabled>Choose a developer</option>{(teamQuery.data?.members ?? []).filter((member) => member.role === "Developer" || member.role === "Member").map((member) => { const user = typeof member.userId === "object" ? member.userId : null; return user ? <option key={member._id} value={user._id}>{user.name}</option> : null; })}</select></label>}<label>Due date<input type="date" value={editTaskDueDate} onChange={(event) => setEditTaskDueDate(event.target.value)}/></label></> }{saveTaskError && <p className="form-error" role="alert">{saveTaskError}</p>}<button className="primary-button" disabled={saveTaskSaving} onClick={() => void saveTaskDetails()}>{saveTaskSaving ? "Saving..." : "Save task details"}</button>{(session.workspace?.role === "Admin" || session.workspace?.role === "Manager") && <button className="danger-button" onClick={() => void deleteTask()}>Delete task</button>}</div>}<div className="comment-list">{(commentsQuery.data?.comments ?? []).map((comment) => <article className="comment-item" key={comment._id}><div className="comment-avatar">{typeof comment.authorId === "object" ? comment.authorId.name.slice(0,1).toUpperCase() : "T"}</div><div><strong>{typeof comment.authorId === "object" ? comment.authorId.name : "Teammate"}</strong><time>{new Date(comment.createdAt).toLocaleString()}</time><p>{comment.body}</p></div></article>)}{commentsQuery.isLoading && <p className="comment-empty">Loading discussion…</p>}{!commentsQuery.isLoading && (commentsQuery.data?.comments.length ?? 0)===0 && <p className="comment-empty">No comments yet. Start the conversation.</p>}</div><form className="comment-form" onSubmit={submitComment}><textarea value={commentDraft} onChange={(event) => setCommentDraft(event.target.value)} placeholder="Write a comment…" maxLength={4000}/><button className="primary-button" disabled={!commentDraft.trim()}>Send comment <ArrowRight size={14}/></button></form></section></div>}
   </div>;
 }
 
-function StatCard({title,value,change,icon,tone}:{title:string;value:string;change:string;icon:React.ReactNode;tone:string}) {
+function StatCard({title,value,change,icon,tone}) {
   return <div className="surface stat-card"><div className="stat-top"><span>{title}</span><div className={`stat-icon ${tone}`}>{icon}</div></div><strong className="stat-value">{value}</strong><div className="stat-change"><span className="trend-icon"><ArrowUpRight size={13}/></span>{change}</div></div>;
 }
-function PriorityPill({priority}:{priority:"High"|"Medium"|"Low"}) {
+function PriorityPill({priority}) {
   const Icon=priority==="High"?ArrowUp:priority==="Low"?ArrowDown:Activity;
   return <span className={`priority-pill priority-${priority.toLowerCase()}`}><Icon size={12}/>{priority}</span>;
 }
-function StatusPill({status}:{status:TaskStatus}) {
+function StatusPill({status}) {
   return <span className={`status-pill status-${status.toLowerCase().replace(" ","-")}`}><i/>{status}</span>;
 }
 export default App;

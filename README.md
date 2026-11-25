@@ -1,6 +1,6 @@
 # SprintSpace
 
-A multi-tenant team collaboration and project management platform built with React, TypeScript, Express, MongoDB, Redis, and Socket.IO.
+A multi-tenant team collaboration and project management platform built with React, JavaScript, Node.js, Express, MongoDB, Redis, and Socket.IO.
 
 ## What is implemented
 
@@ -26,8 +26,8 @@ This is an actively developed project, not a fully audited production SaaS. Curr
 
 | Layer | Technologies |
 | --- | --- |
-| Frontend | React 18, Vite, TypeScript, Tailwind CSS, TanStack Query, Zustand, Recharts, Socket.IO Client |
-| API | Node.js 20, Express, TypeScript, Zod, Socket.IO |
+| Frontend | React 18, JavaScript, JSX, Vite, Tailwind CSS, TanStack Query, Zustand, Recharts, Socket.IO Client |
+| API | Node.js 20, Express, JavaScript, Zod, Socket.IO |
 | Persistence | MongoDB, Mongoose |
 | Cache / rate limits | Redis, ioredis, express-rate-limit |
 | Security | Helmet, CORS allowlist, bcrypt, JWT, hashed rotating refresh sessions |
@@ -152,11 +152,11 @@ Before production, add CSRF/security tests for the exact hosting topology, broad
 
 ## Development commands
 
-Backend (from `backend/`): `npm run dev`, `npm run typecheck`, `npm test`, `npm run build`.
+Backend (from `backend/`): `npm run dev`, `npm test`, `npm run build`.
 
-Frontend (from `frontend/`): `npm run dev`, `npm run typecheck`, `npm run build`.
+Frontend (from `frontend/`): `npm run dev`, `npm run build`.
 
-GitHub Actions runs backend typecheck/tests/build, frontend typecheck/production build, Docker Compose validation, and both container image builds on pushes and pull requests to `main`.
+GitHub Actions runs backend JavaScript syntax checks and tests, frontend production build, Docker Compose validation, and both container image builds on pushes and pull requests to `main`.
 
 Never commit real credentials or local `.env` files. Use the provided `.env.example` templates.
 

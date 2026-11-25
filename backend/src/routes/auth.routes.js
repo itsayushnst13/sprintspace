@@ -25,42 +25,42 @@ const loginSchema = z.object({
 const cookieOptions = () => ({
   httpOnly: true,
   secure: env.NODE_ENV === "production" || env.COOKIE_SECURE,
-  sameSite: (env.NODE_ENV === "production" ? "none" : "strict") as "none" | "strict",
+  sameSite: (env.NODE_ENV === "production" ? "none" : "strict"),
   path: "/api/v1/auth",
   maxAge: env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000
 });
 
-function issueAccessToken(userId: string): string {
+function issueAccessToken(userId) {
   return jwt.sign({}, env.JWT_ACCESS_SECRET, {
     subject: userId,
-    expiresIn: env.ACCESS_TOKEN_TTL as jwt.SignOptions["expiresIn"]
+    expiresIn: env.ACCESS_TOKEN_TTL
   });
 }
 
-async function createRefreshSession(userId: string): Promise<string> {
+async function createRefreshSession(userId) {
   const token = createOpaqueRefreshToken();
   const expiresAt = new Date(Date.now() + env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
   await RefreshSession.create({ userId, tokenHash: hashRefreshToken(token), expiresAt });
   return token;
 }
 
-function setRefreshCookie(res: import("express").Response, token: string): void {
+function setRefreshCookie(res, token) {
   res.cookie("refreshToken", token, cookieOptions());
 }
 
-function assertTrustedOrigin(req: import("express").Request): void {
+function assertTrustedOrigin(req) {
   if (req.get("origin") !== env.CLIENT_URL) {
     throw new ApiError(403, "Request origin is not allowed", "UNTRUSTED_ORIGIN");
   }
 }
 
-async function sessionPayload(userId: string) {
+async function sessionPayload(userId) {
   const user = await User.findById(userId).select("name email").lean();
   if (!user) throw new ApiError(401, "Account no longer exists", "ACCOUNT_NOT_FOUND");
   const memberships = await WorkspaceMember.find({ userId, status: "active" })
     .populate("workspaceId", "name slug").sort({ createdAt: 1 }).lean();
   const workspaces = memberships.flatMap((membership) => {
-    const workspace = membership.workspaceId as unknown as { _id: { toString(): string }; name: string; slug: string } | null;
+    const workspace = membership.workspaceId;
     return workspace ? [{
       id: workspace._id.toString(), name: workspace.name, slug: workspace.slug, role: membership.role
     }] : [];
@@ -116,7 +116,7 @@ authRouter.post("/login", async (req, res, next) => {
 authRouter.post("/refresh", async (req, res, next) => {
   try {
     assertTrustedOrigin(req);
-    const oldToken = req.cookies?.refreshToken as string | undefined;
+    const oldToken = req.cookies?.refreshToken;
     if (!oldToken || oldToken.length > 256) throw new ApiError(401, "Refresh session is missing", "REFRESH_REQUIRED");
 
     const oldHash = hashRefreshToken(oldToken);
@@ -155,7 +155,7 @@ authRouter.post("/refresh", async (req, res, next) => {
 authRouter.post("/logout", async (req, res, next) => {
   try {
     assertTrustedOrigin(req);
-    const token = req.cookies?.refreshToken as string | undefined;
+    const token = req.cookies?.refreshToken;
     if (token && token.length <= 256) {
       await RefreshSession.updateOne({ tokenHash: hashRefreshToken(token), revokedAt: null }, { $set: { revokedAt: new Date() } });
     }

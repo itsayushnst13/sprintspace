@@ -15,9 +15,9 @@ workspaceRouter.get("/", async (req, res, next) => {
       .populate("workspaceId", "name slug")
       .lean();
     res.json({ workspaces: memberships.map((item) => ({
-      id: (item.workspaceId as unknown as { _id: { toString(): string }; name: string; slug: string })._id.toString(),
-      name: (item.workspaceId as unknown as { name: string }).name,
-      slug: (item.workspaceId as unknown as { slug: string }).slug,
+      id: item.workspaceId._id.toString(),
+      name: item.workspaceId.name,
+      slug: item.workspaceId.slug,
       role: item.role
     })) });
   } catch (error) { next(error); }

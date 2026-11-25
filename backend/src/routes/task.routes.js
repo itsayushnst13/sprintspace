@@ -29,7 +29,7 @@ const taskInput = z.object({
 
 taskRouter.get("/", async (req, res, next) => {
   try {
-    const filter: Record<string, unknown> = { workspaceId: req.workspaceId };
+    const filter = { workspaceId: req.workspaceId };
     if (typeof req.query.projectId === "string") filter.projectId = req.query.projectId;
     if (typeof req.query.status === "string") filter.status = req.query.status;
     if (req.query.mine === "true") filter.$or = [{ createdBy: req.userId }, { assigneeId: req.userId }];
@@ -55,7 +55,7 @@ taskRouter.post("/", async (req, res, next) => {
       throw new ApiError(403, "Developers can create tasks assigned to themselves only", "ASSIGNMENT_FORBIDDEN");
     }
     const task = await Task.create({ ...input, workspaceId: req.workspaceId, createdBy: req.userId });
-    await invalidateWorkspaceAnalytics(req.workspaceId!);
+    await invalidateWorkspaceAnalytics(req.workspaceId);
     await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "task", entityId: task._id, action: "task.created", summary: `Created task "${task.title}"` });
     if (task.assigneeId) {
       const assignee = await User.findById(task.assigneeId).select("name").lean();
@@ -65,7 +65,7 @@ taskRouter.post("/", async (req, res, next) => {
         metadata: { assigneeId: task.assigneeId.toString() }
       });
     }
-    emitWorkspaceEvent(req.workspaceId!, "task:created", { task });
+    emitWorkspaceEvent(req.workspaceId, "task:created", { task });
     if (task.assigneeId && task.assigneeId.toString() !== req.userId) {
       const notification = await Notification.create({ workspaceId: req.workspaceId, recipientId: task.assigneeId, actorId: req.userId, type: "task_assigned", title: "You were assigned a task", body: task.title, entityType: "task", entityId: task._id });
       emitUserEvent(notification.recipientId.toString(), "notification:created", { notification });
@@ -81,7 +81,7 @@ taskRouter.patch("/:taskId", async (req, res, next) => {
     if (!existingTask) throw new ApiError(404, "Task not found");
     const isCreator = existingTask.createdBy.toString() === req.userId;
     const isAssignee = existingTask.assigneeId?.toString() === req.userId;
-    if (!req.workspaceRole || !canEditTask(req.workspaceRole, isCreator, isAssignee, Object.keys(input) as Array<"title" | "description" | "status" | "priority" | "assigneeId" | "dueDate">)) {
+    if (!req.workspaceRole || !canEditTask(req.workspaceRole, isCreator, isAssignee, Object.keys(input))) {
       throw new ApiError(403, "Assignees can update task status; task creators and workspace managers can edit all task fields");
     }
     if (Object.prototype.hasOwnProperty.call(input, "assigneeId") && !input.assigneeId) {
@@ -104,7 +104,7 @@ taskRouter.patch("/:taskId", async (req, res, next) => {
       { $set: input }, { new: true, runValidators: true }
     );
     if (!task) throw new ApiError(404, "Task not found");
-    await invalidateWorkspaceAnalytics(req.workspaceId!);
+    await invalidateWorkspaceAnalytics(req.workspaceId);
     const previousAssignee = existingTask.assigneeId?.toString() ?? null;
     const currentAssignee = task.assigneeId?.toString() ?? null;
     const assigneeChanged = currentAssignee !== previousAssignee;
@@ -130,7 +130,7 @@ taskRouter.patch("/:taskId", async (req, res, next) => {
       });
       emitUserEvent(currentAssignee, "notification:created", { notification });
     }
-    emitWorkspaceEvent(req.workspaceId!, "task:updated", { task });
+    emitWorkspaceEvent(req.workspaceId, "task:updated", { task });
     res.json({ task });
   } catch (error) { next(error); }
 });
@@ -140,13 +140,13 @@ taskRouter.delete("/:taskId", async (req, res, next) => {
     if (!req.workspaceRole || !canDeleteTasks(req.workspaceRole)) throw new ApiError(403, "Only admins and managers can delete tasks");
     const task = await Task.findOneAndDelete({ _id: req.params.taskId, workspaceId: req.workspaceId });
     if (!task) throw new ApiError(404, "Task not found");
-    await invalidateWorkspaceAnalytics(req.workspaceId!);
+    await invalidateWorkspaceAnalytics(req.workspaceId);
     await Promise.all([
       Comment.deleteMany({ taskId: task._id, workspaceId: req.workspaceId }),
       Notification.deleteMany({ entityType: "task", entityId: task._id, workspaceId: req.workspaceId })
     ]);
     await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "task", entityId: task._id, action: "task.deleted", summary: `Deleted task "${task.title}"` });
-    emitWorkspaceEvent(req.workspaceId!, "task:deleted", { taskId: task.id });
+    emitWorkspaceEvent(req.workspaceId, "task:deleted", { taskId: task.id });
     res.status(204).end();
   } catch (error) { next(error); }
 });

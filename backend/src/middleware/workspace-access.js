@@ -1,14 +1,7 @@
-import type { RequestHandler } from "express";
-import { WorkspaceMember, type WorkspaceRole } from "../models/WorkspaceMember.js";
+import { WorkspaceMember } from "../models/WorkspaceMember.js";
 import { ApiError } from "./error-handler.js";
 
-declare global {
-  namespace Express {
-    interface Request { workspaceId?: string; workspaceRole?: WorkspaceRole }
-  }
-}
-
-export function requireWorkspaceMember(roles?: WorkspaceRole[]): RequestHandler {
+export function requireWorkspaceMember(roles) {
   return async (req, _res, next) => {
     try {
       const workspaceId = req.params.workspaceId;
@@ -18,7 +11,7 @@ export function requireWorkspaceMember(roles?: WorkspaceRole[]): RequestHandler 
       }).lean();
 
       if (!membership) throw new ApiError(404, "Workspace not found", "WORKSPACE_NOT_FOUND");
-      const role = membership.role as WorkspaceRole;
+      const role = membership.role;
       if (roles && !roles.includes(role)) throw new ApiError(403, "You do not have permission for this action", "FORBIDDEN");
 
       req.workspaceId = workspaceId;

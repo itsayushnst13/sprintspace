@@ -1,7 +1,5 @@
 import { Schema, model } from "mongoose";
 
-export type WorkspaceRole = "Admin" | "Manager" | "Developer" | "Member";
-
 const membershipSchema = new Schema({
   workspaceId: { type: Schema.Types.ObjectId, ref: "Workspace", required: true, index: true },
   userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },

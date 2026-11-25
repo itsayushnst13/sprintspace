@@ -15,7 +15,7 @@ commentsRouter.use(requireAuth, requireWorkspaceMember());
 
 commentsRouter.get("/", async (req, res, next) => {
   try {
-    const taskId = (req.params as Record<string, string>)["taskId"];
+    const taskId = (req.params)["taskId"];
     const task = await Task.exists({ _id: taskId, workspaceId: req.workspaceId });
     if (!task) throw new ApiError(404, "Task not found");
     const comments = await Comment.find({ taskId, workspaceId: req.workspaceId })
@@ -26,7 +26,7 @@ commentsRouter.get("/", async (req, res, next) => {
 
 commentsRouter.post("/", async (req, res, next) => {
   try {
-    const taskId = (req.params as Record<string, string>)["taskId"];
+    const taskId = (req.params)["taskId"];
     const { body } = z.object({ body: z.string().trim().min(1).max(4000) }).parse(req.body);
     const task = await Task.findOne({ _id: taskId, workspaceId: req.workspaceId });
     if (!task) throw new ApiError(404, "Task not found");
@@ -38,7 +38,7 @@ commentsRouter.post("/", async (req, res, next) => {
       entityId: comment._id, action: "comment.created", summary: "Added a comment to a task",
       metadata: { taskId: task.id, taskTitle: task.title }
     });
-    await invalidateWorkspaceAnalytics(req.workspaceId!);
+    await invalidateWorkspaceAnalytics(req.workspaceId);
     if (task.assigneeId && task.assigneeId.toString() !== req.userId) {
       const notification = await Notification.create({
         workspaceId: req.workspaceId, recipientId: task.assigneeId, actorId: req.userId,
@@ -48,14 +48,14 @@ commentsRouter.post("/", async (req, res, next) => {
       emitUserEvent(notification.recipientId.toString(), "notification:created", { notification });
     }
     const populated = await Comment.findById(comment._id).populate("authorId", "name avatarUrl").lean();
-    emitWorkspaceEvent(req.workspaceId!, "comment:created", { comment: populated, taskId: task.id });
+    emitWorkspaceEvent(req.workspaceId, "comment:created", { comment: populated, taskId: task.id });
     res.status(201).json({ comment: populated });
   } catch (error) { next(error); }
 });
 
 commentsRouter.delete("/:commentId", async (req, res, next) => {
   try {
-    const commentId = (req.params as Record<string, string>)["commentId"];
+    const commentId = (req.params)["commentId"];
     const comment = await Comment.findOne({ _id: commentId, workspaceId: req.workspaceId });
     if (!comment) throw new ApiError(404, "Comment not found");
     if (comment.authorId.toString() !== req.userId && req.workspaceRole !== "Admin") {
@@ -63,8 +63,8 @@ commentsRouter.delete("/:commentId", async (req, res, next) => {
     }
     await comment.deleteOne();
     await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "comment", entityId: comment._id, action: "comment.deleted", summary: "Deleted a task comment" });
-    await invalidateWorkspaceAnalytics(req.workspaceId!);
-    emitWorkspaceEvent(req.workspaceId!, "comment:deleted", { commentId: comment.id, taskId: comment.taskId.toString() });
+    await invalidateWorkspaceAnalytics(req.workspaceId);
+    emitWorkspaceEvent(req.workspaceId, "comment:deleted", { commentId: comment.id, taskId: comment.taskId.toString() });
     res.status(204).end();
   } catch (error) { next(error); }
 });
@@ -94,7 +94,7 @@ notificationsRouter.get("/", async (req, res, next) => {
 });
 notificationsRouter.patch("/:notificationId/read", async (req, res, next) => {
   try {
-    const notificationId = (req.params as Record<string, string>)["notificationId"];
+    const notificationId = (req.params)["notificationId"];
     const notification = await Notification.findOneAndUpdate({
       _id: notificationId, workspaceId: req.workspaceId,
       recipientId: req.userId, readAt: null

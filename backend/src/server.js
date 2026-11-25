@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 import { env } from "./config/env.js";
 import { attachSocketServer } from "./realtime/socket.js";
 
-async function start(): Promise<void> {
+async function start() {
   await connectDatabase();
   const server = createServer(app);
   attachSocketServer(server);
@@ -13,7 +13,7 @@ async function start(): Promise<void> {
     console.info(`SprintSpace API and realtime server listening on port ${env.PORT}`);
   });
 
-  const shutdown = async (signal: string) => {
+  const shutdown = async (signal) => {
     console.info(`${signal} received; closing server`);
     server.close(async () => {
       await Promise.allSettled([redis.quit(), mongoose.disconnect()]);
@@ -24,7 +24,7 @@ async function start(): Promise<void> {
   process.on("SIGINT", () => void shutdown("SIGINT"));
 }
 
-start().catch((error: unknown) => {
+start().catch((error) => {
   console.error("API startup failed:", error);
   process.exit(1);
 });

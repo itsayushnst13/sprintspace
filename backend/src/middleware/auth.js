@@ -1,15 +1,8 @@
-import type { RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env.js";
 import { ApiError } from "./error-handler.js";
 
-declare global {
-  namespace Express {
-    interface Request { userId?: string }
-  }
-}
-
-export const requireAuth: RequestHandler = (req, _res, next) => {
+export const requireAuth = (req, _res, next) => {
   const header = req.header("authorization");
   const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
   if (!token) return next(new ApiError(401, "Authentication required", "UNAUTHENTICATED"));

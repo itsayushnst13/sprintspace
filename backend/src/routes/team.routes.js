@@ -68,8 +68,8 @@ teamRouter.post("/invitations", async (req, res, next) => {
       workspaceId: req.workspaceId, actorId: req.userId, entityType: "member",
       entityId: invitation._id, action: "member.invited", summary: `Invited ${email} as ${input.role}`
     });
-    await invalidateWorkspaceAnalytics(req.workspaceId!);
-    emitWorkspaceEvent(req.workspaceId!, "team:invited", {
+    await invalidateWorkspaceAnalytics(req.workspaceId);
+    emitWorkspaceEvent(req.workspaceId, "team:invited", {
       invitation: { id: invitation.id, email: invitation.email, role: invitation.role, expiresAt }
     });
     res.status(201).json({
@@ -85,7 +85,7 @@ teamRouter.delete("/invitations/:invitationId", async (req, res, next) => {
     if (req.workspaceRole !== "Admin" && req.workspaceRole !== "Manager") {
       throw new ApiError(403, "Only workspace managers can revoke invitations");
     }
-    const invitationId = (req.params as Record<string, string>)["invitationId"];
+    const invitationId = (req.params)["invitationId"];
     const invitation = await Invitation.findOneAndUpdate({
       _id: invitationId, workspaceId: req.workspaceId, acceptedAt: null, revokedAt: null
     }, { $set: { revokedAt: new Date() } }, { new: true });
@@ -98,22 +98,22 @@ teamRouter.patch("/members/:memberId/role", async (req, res, next) => {
   try {
     if (req.workspaceRole !== "Admin") throw new ApiError(403, "Only workspace admins can change member roles");
     const { role } = z.object({ role: z.enum(["Manager", "Developer", "Member"]) }).parse(req.body);
-    const memberId = (req.params as Record<string, string>)["memberId"];
+    const memberId = (req.params)["memberId"];
     const target = await WorkspaceMember.findOne({ _id: memberId, workspaceId: req.workspaceId, status: "active" });
     if (!target) throw new ApiError(404, "Workspace member not found");
     if (target.role === "Admin") throw new ApiError(400, "Transfer workspace ownership before changing the admin role");
     target.role = role;
     await target.save();
     await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "member", entityId: target._id, action: "member.role_updated", summary: `Changed a workspace member role to ${role}` });
-    await invalidateWorkspaceAnalytics(req.workspaceId!);
-    emitWorkspaceEvent(req.workspaceId!, "team:updated", { memberId: target.id, role });
+    await invalidateWorkspaceAnalytics(req.workspaceId);
+    emitWorkspaceEvent(req.workspaceId, "team:updated", { memberId: target.id, role });
     res.json({ member: target });
   } catch (error) { next(error); }
 });
 
 teamRouter.delete("/members/:memberId", async (req, res, next) => {
   try {
-    const memberId = (req.params as Record<string, string>)["memberId"];
+    const memberId = (req.params)["memberId"];
     const target = await WorkspaceMember.findOne({ _id: memberId, workspaceId: req.workspaceId, status: "active" });
     if (!target) throw new ApiError(404, "Workspace member not found");
     const isSelf = target.userId.toString() === req.userId;
@@ -127,10 +127,10 @@ teamRouter.delete("/members/:memberId", async (req, res, next) => {
     }
     target.status = "suspended";
     await target.save();
-    await revokeWorkspaceMemberSockets(req.workspaceId!, target.userId.toString());
+    await revokeWorkspaceMemberSockets(req.workspaceId, target.userId.toString());
     await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "member", entityId: target._id, action: "member.removed", summary: "Removed a member from the workspace" });
-    await invalidateWorkspaceAnalytics(req.workspaceId!);
-    emitWorkspaceEvent(req.workspaceId!, "team:removed", { memberId: target.id });
+    await invalidateWorkspaceAnalytics(req.workspaceId);
+    emitWorkspaceEvent(req.workspaceId, "team:removed", { memberId: target.id });
     res.status(204).end();
   } catch (error) { next(error); }
 });

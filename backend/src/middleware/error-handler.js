@@ -1,21 +1,18 @@
-import type { ErrorRequestHandler, RequestHandler } from "express";
 import { ZodError } from "zod";
 
 export class ApiError extends Error {
-  constructor(
-    public readonly statusCode: number,
-    message: string,
-    public readonly code = "REQUEST_ERROR"
-  ) {
+  constructor(statusCode, message, code = "REQUEST_ERROR") {
     super(message);
+    this.statusCode = statusCode;
+    this.code = code;
   }
 }
 
-export const notFound: RequestHandler = (_req, res) => {
+export const notFound= (_req, res) => {
   res.status(404).json({ error: { code: "NOT_FOUND", message: "Route not found" } });
 };
 
-export const errorHandler: ErrorRequestHandler = (error: unknown, _req, res, _next) => {
+export const errorHandler= (error, _req, res, _next) => {
   const known = error instanceof ApiError ? error : null;
   const invalid = error instanceof ZodError;
   const mongoDuplicate = typeof error === "object" && error !== null && "code" in error && error.code === 11000;
