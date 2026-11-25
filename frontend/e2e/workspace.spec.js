@@ -118,7 +118,20 @@ test("complete workspace collaboration journey", async ({ browser, page, request
     await developerPage.getByRole("button", { name: "Save task details" }).click();
 
     await developerPage.getByRole("button", { name: "Close comments" }).click();
+    expect(await developerPage.evaluate(() => localStorage.getItem("sprintspace.workspaceId"))).toBe(adminAccount.workspace.id);
+    const reloadedTasksPromise = developerPage.waitForResponse((response) =>
+      response.url().includes("/api/v1/workspaces/") &&
+      response.url().endsWith("/tasks") &&
+      response.request().method() === "GET"
+    );
     await developerPage.reload();
+    await expect(developerPage.getByRole("heading", { name: /Good morning/ })).toBeVisible();
+    await expect(developerPage.locator(".workspace-switch")).toContainText(adminAccount.workspace.name);
+    const reloadedTasksResponse = await reloadedTasksPromise;
+    expect(reloadedTasksResponse.status()).toBe(200);
+    expect(reloadedTasksResponse.url()).toContain(`/workspaces/${adminAccount.workspace.id}/tasks`);
+    const reloadedTasks = await reloadedTasksResponse.json();
+    expect(reloadedTasks.tasks.some((task) => task.title === taskTitle)).toBe(true);
     await expect(developerPage.getByRole("button", { name: taskTitle, exact: true })).toBeVisible();
     const taskRow = developerPage.locator(".task-table-row").filter({
       has: developerPage.getByRole("button", { name: taskTitle, exact: true })
