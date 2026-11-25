@@ -36,8 +36,9 @@ test("browser journey: register, invite, assign a task, collaborate and update p
     await register(adminPage, adminName, adminEmail, password);
 
     await adminPage.getByRole("button", { name: "Create new project" }).click();
-    await adminPage.getByLabel("Project name").fill(projectName);
-    await adminPage.getByRole("button", { name: /Create project/ }).click();
+    const projectModal = adminPage.locator(".create-modal");
+    await projectModal.getByLabel("Project name").fill(projectName);
+    await projectModal.getByRole("button", { name: /Create project/ }).click();
     await expect(adminPage.getByText(projectName, { exact: true }).first()).toBeVisible();
 
     await adminPage.getByRole("button", { name: "Team", exact: true }).click();
@@ -54,12 +55,14 @@ test("browser journey: register, invite, assign a task, collaborate and update p
 
     await adminPage.getByRole("button", { name: "Overview", exact: true }).click();
     await adminPage.getByRole("button", { name: /New task/ }).first().click();
-    await adminPage.getByLabel("Task title").fill(taskTitle);
-    await adminPage.getByLabel("Project").selectOption({ label: projectName });
-    const assigneeSelect = adminPage.getByLabel("Assign to developer");
+    const taskModal = adminPage.locator(".create-modal");
+    await taskModal.getByLabel("Task title").fill(taskTitle);
+    const projectSelect = taskModal.locator(".create-form label").filter({ hasText: "Choose a project" }).locator("select");
+    await projectSelect.selectOption({ label: projectName });
+    const assigneeSelect = taskModal.locator(".create-form label").filter({ hasText: "Choose a developer" }).locator("select");
     await expect(assigneeSelect.locator("option", { hasText: developerName })).toHaveCount(1);
     await assigneeSelect.selectOption({ label: developerName });
-    await adminPage.getByRole("button", { name: /Create task/ }).click();
+    await taskModal.getByRole("button", { name: /Create task/ }).click();
     await expect(adminPage.getByRole("button", { name: taskTitle, exact: true })).toBeVisible();
 
     await developerPage.getByRole("button", { name: "My tasks", exact: true }).click();
@@ -67,14 +70,15 @@ test("browser journey: register, invite, assign a task, collaborate and update p
 
     await developerPage.getByRole("button", { name: "Board", exact: true }).click();
     await developerPage.getByRole("button", { name: taskTitle, exact: true }).click();
-    await expect(developerPage.getByLabel("Status")).toBeVisible();
-    await expect(developerPage.getByLabel("Priority")).toHaveCount(0);
-    await developerPage.getByLabel("Status").selectOption("Done");
-    await developerPage.getByRole("button", { name: "Save task details" }).click();
+    const taskDiscussion = developerPage.locator(".comment-modal");
+    await expect(taskDiscussion.getByLabel("Status")).toBeVisible();
+    await expect(taskDiscussion.getByLabel("Priority")).toHaveCount(0);
+    await taskDiscussion.getByLabel("Status").selectOption("Done");
+    await taskDiscussion.getByRole("button", { name: "Save task details" }).click();
 
-    await developerPage.getByPlaceholder("Write a comment…").fill("Browser E2E collaboration comment.");
-    await developerPage.getByRole("button", { name: /Send comment/ }).click();
-    await expect(developerPage.getByText("Browser E2E collaboration comment.")).toBeVisible();
+    await taskDiscussion.getByPlaceholder("Write a comment…").fill("Browser E2E collaboration comment.");
+    await taskDiscussion.getByRole("button", { name: /Send comment/ }).click();
+    await expect(taskDiscussion.getByText("Browser E2E collaboration comment.")).toBeVisible();
 
     await developerPage.getByRole("button", { name: "Notifications" }).click();
     await expect(developerPage.getByText("You were assigned a task")).toBeVisible();
