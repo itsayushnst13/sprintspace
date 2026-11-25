@@ -68,8 +68,8 @@ teamRouter.post("/invitations", async (req, res, next) => {
       workspaceId: req.workspaceId, actorId: req.userId, entityType: "member",
       entityId: invitation._id, action: "member.invited", summary: `Invited ${email} as ${input.role}`
     });
-    await invalidateWorkspaceAnalytics(req.workspaceId!);
-    emitWorkspaceEvent(req.workspaceId!, "team:invited", {
+    await invalidateWorkspaceAnalytics(req.workspaceId);
+    emitWorkspaceEvent(req.workspaceId, "team:invited", {
       invitation: { id: invitation.id, email: invitation.email, role: invitation.role, expiresAt }
     });
     res.status(201).json({
@@ -105,8 +105,8 @@ teamRouter.patch("/members/:memberId/role", async (req, res, next) => {
     target.role = role;
     await target.save();
     await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "member", entityId: target._id, action: "member.role_updated", summary: `Changed a workspace member role to ${role}` });
-    await invalidateWorkspaceAnalytics(req.workspaceId!);
-    emitWorkspaceEvent(req.workspaceId!, "team:updated", { memberId: target.id, role });
+    await invalidateWorkspaceAnalytics(req.workspaceId);
+    emitWorkspaceEvent(req.workspaceId, "team:updated", { memberId: target.id, role });
     res.json({ member: target });
   } catch (error) { next(error); }
 });
@@ -127,10 +127,10 @@ teamRouter.delete("/members/:memberId", async (req, res, next) => {
     }
     target.status = "suspended";
     await target.save();
-    await revokeWorkspaceMemberSockets(req.workspaceId!, target.userId.toString());
+    await revokeWorkspaceMemberSockets(req.workspaceId, target.userId.toString());
     await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "member", entityId: target._id, action: "member.removed", summary: "Removed a member from the workspace" });
-    await invalidateWorkspaceAnalytics(req.workspaceId!);
-    emitWorkspaceEvent(req.workspaceId!, "team:removed", { memberId: target.id });
+    await invalidateWorkspaceAnalytics(req.workspaceId);
+    emitWorkspaceEvent(req.workspaceId, "team:removed", { memberId: target.id });
     res.status(204).end();
   } catch (error) { next(error); }
 });

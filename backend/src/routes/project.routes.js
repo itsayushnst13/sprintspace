@@ -31,9 +31,9 @@ projectRouter.post("/", async (req, res, next) => {
     if (!req.workspaceRole || !canManageProjects(req.workspaceRole)) throw new ApiError(403, "Only admins and managers can create projects");
     const input = projectInput.parse(req.body);
     const project = await Project.create({ ...input, workspaceId: req.workspaceId, createdBy: req.userId });
-    await invalidateWorkspaceAnalytics(req.workspaceId!);
+    await invalidateWorkspaceAnalytics(req.workspaceId);
     await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "project", entityId: project._id, action: "project.created", summary: `Created project "${project.name}"` });
-    emitWorkspaceEvent(req.workspaceId!, "project:created", { project });
+    emitWorkspaceEvent(req.workspaceId, "project:created", { project });
     res.status(201).json({ project });
   } catch (error) { next(error); }
 });
@@ -47,9 +47,9 @@ projectRouter.patch("/:projectId", async (req, res, next) => {
       { $set: input }, { new: true, runValidators: true }
     );
     if (!project) throw new ApiError(404, "Project not found");
-    await invalidateWorkspaceAnalytics(req.workspaceId!);
+    await invalidateWorkspaceAnalytics(req.workspaceId);
     await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "project", entityId: project._id, action: "project.updated", summary: `Updated project "${project.name}"` });
-    emitWorkspaceEvent(req.workspaceId!, "project:updated", { project });
+    emitWorkspaceEvent(req.workspaceId, "project:updated", { project });
     res.json({ project });
   } catch (error) { next(error); }
 });
@@ -62,9 +62,9 @@ projectRouter.delete("/:projectId", async (req, res, next) => {
       { $set: { status: "archived" } }, { new: true }
     );
     if (!project) throw new ApiError(404, "Project not found");
-    await invalidateWorkspaceAnalytics(req.workspaceId!);
+    await invalidateWorkspaceAnalytics(req.workspaceId);
     await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "project", entityId: project._id, action: "project.archived", summary: `Archived project "${project.name}"` });
-    emitWorkspaceEvent(req.workspaceId!, "project:updated", { project });
+    emitWorkspaceEvent(req.workspaceId, "project:updated", { project });
     res.json({ project });
   } catch (error) { next(error); }
 });

@@ -38,7 +38,7 @@ commentsRouter.post("/", async (req, res, next) => {
       entityId: comment._id, action: "comment.created", summary: "Added a comment to a task",
       metadata: { taskId: task.id, taskTitle: task.title }
     });
-    await invalidateWorkspaceAnalytics(req.workspaceId!);
+    await invalidateWorkspaceAnalytics(req.workspaceId);
     if (task.assigneeId && task.assigneeId.toString() !== req.userId) {
       const notification = await Notification.create({
         workspaceId: req.workspaceId, recipientId: task.assigneeId, actorId: req.userId,
@@ -48,7 +48,7 @@ commentsRouter.post("/", async (req, res, next) => {
       emitUserEvent(notification.recipientId.toString(), "notification:created", { notification });
     }
     const populated = await Comment.findById(comment._id).populate("authorId", "name avatarUrl").lean();
-    emitWorkspaceEvent(req.workspaceId!, "comment:created", { comment: populated, taskId: task.id });
+    emitWorkspaceEvent(req.workspaceId, "comment:created", { comment: populated, taskId: task.id });
     res.status(201).json({ comment: populated });
   } catch (error) { next(error); }
 });
@@ -63,8 +63,8 @@ commentsRouter.delete("/:commentId", async (req, res, next) => {
     }
     await comment.deleteOne();
     await ActivityLog.create({ workspaceId: req.workspaceId, actorId: req.userId, entityType: "comment", entityId: comment._id, action: "comment.deleted", summary: "Deleted a task comment" });
-    await invalidateWorkspaceAnalytics(req.workspaceId!);
-    emitWorkspaceEvent(req.workspaceId!, "comment:deleted", { commentId: comment.id, taskId: comment.taskId.toString() });
+    await invalidateWorkspaceAnalytics(req.workspaceId);
+    emitWorkspaceEvent(req.workspaceId, "comment:deleted", { commentId: comment.id, taskId: comment.taskId.toString() });
     res.status(204).end();
   } catch (error) { next(error); }
 });

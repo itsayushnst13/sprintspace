@@ -12,7 +12,7 @@ import { useSession } from "./store/session";
 import { AuthScreen } from "./components/AuthScreen";
 import { apiRequest, getAccessToken } from "./lib/api";
 const boardStatuses = ["Todo", "In progress", "In review", "Done"];
-const primaryNav: NavItem[] = [
+const primaryNav = [
   { label: "Overview", icon: LayoutDashboard }, { label: "My tasks", icon: ListTodo },
   { label: "Projects", icon: FolderKanban }, { label: "Calendar", icon: CalendarDays },
   { label: "Board", icon: ListTodo }, { label: "Team", icon: Users }, { label: "Activity", icon: Activity }
@@ -312,7 +312,7 @@ function App() {
   const selectedProject = projectRows.find((project) => project.id === selectedProjectId);
   const calendarGridStart = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1 - ((calendarMonth.getDay() + 6) % 7));
   const calendarDays = Array.from({ length: 42 }, (_, index) => new Date(calendarGridStart.getFullYear(), calendarGridStart.getMonth(), calendarGridStart.getDate() + index));
-  const calendarDateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const calendarDateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
   if (!session.ready) return <div className="auth-loading"><div className="brand-mark"><Command size={19}/></div><span>Restoring your workspace…</span></div>;
   if (!session.authenticated) return <AuthScreen />;
@@ -395,7 +395,7 @@ function App() {
     setSelectedProjectId(null);
     setCreateModal("task");
   };
-  const openActivityItem = (item: ActivityRecord) => {
+  const openActivityItem = (item) => {
     if (item.entityType === "task" && item.entityId) openTask(item.entityId);
     else if (item.entityType === "project" && item.entityId) openProject(item.entityId);
     else if (item.entityType === "comment" && typeof item.metadata?.taskId === "string") openTask(item.metadata.taskId);
