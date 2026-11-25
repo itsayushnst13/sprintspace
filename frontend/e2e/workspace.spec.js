@@ -107,8 +107,7 @@ test("complete workspace collaboration journey", async ({ browser, page, request
     await assignmentNotification.click();
     await expect(assignmentNotification).toHaveClass(/read/);
 
-    // Task discussion and assignee status updates must persist across a reload.
-    await developerPage.getByRole("button", { name: taskTitle, exact: true }).click();
+    // Opening the notification navigates directly to the task discussion.
     await developerPage.getByPlaceholder("Write a comment…").fill(commentText);
     await developerPage.getByRole("button", { name: /Send comment/ }).click();
     await expect(developerPage.getByText(commentText, { exact: true })).toBeVisible();
