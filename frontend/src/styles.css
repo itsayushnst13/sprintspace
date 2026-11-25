@@ -2033,3 +2033,48 @@ body {
   .topbar-actions .avatar-small { flex-basis: 31px; width: 31px; height: 31px; }
   .breadcrumb strong { font-size: 14px; }
 }
+
+
+/* Mobile drawer close control: keep the X above all sidebar content and tappable. */
+@media (max-width: 700px) {
+  .sidebar .brand-lockup {
+    position: relative;
+    z-index: 22;
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+  .sidebar .sidebar-close {
+    position: relative;
+    z-index: 30;
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    margin-left: auto;
+    padding: 0;
+    border: 1px solid #3a566b;
+    border-radius: 11px;
+    background: #203b50;
+    color: #e9f2f5;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    touch-action: manipulation;
+    cursor: pointer;
+  }
+  .sidebar .sidebar-close:hover,
+  .sidebar .sidebar-close:active {
+    background: #31536a;
+    color: var(--ss-lime);
+  }
+  .sidebar .sidebar-close svg {
+    width: 21px;
+    height: 21px;
+    pointer-events: none;
+  }
+  .sidebar .sidebar-collapse-toggle { display: none !important; }
+  .mobile-scrim { z-index: 19; }
+  .sidebar.sidebar-open { z-index: 20; }
+}
