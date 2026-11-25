@@ -76,6 +76,21 @@ Use this checklist after starting the application. These are manual runtime chec
 - [ ] Confirm an unrelated workspace member cannot edit another user's task.
 - [ ] Confirm malformed JSON and invalid Mongo IDs return client errors rather than generic 500 responses.
 
+## Automated CI coverage
+
+The GitHub Actions workflow now runs the following automated checks against disposable MongoDB and Redis services:
+
+- Backend integration flow: registration/login, refresh-token rotation and reuse detection, invitation acceptance, workspace isolation, project/task creation, role authorization, comments, notifications, analytics/cache invalidation, task deletion, and project archiving.
+- Browser flow with Chromium: account creation, project creation, inviting and accepting a teammate, task assignment, My Tasks, assignee-only status editing, comments, notifications, project progress, and Activity navigation.
+- Production frontend build, backend unit tests/syntax checks, and Docker image builds.
+
+Run locally with services available at the CI defaults:
+
+```bash
+cd backend && npm install && npm run test:integration
+cd ../frontend && npm install && npx playwright install chromium && npm run test:e2e
+```
+
 ## Completion criteria
 
 Do not call the app production-ready until the above checks pass in the target deployment topology, integration tests cover the security-critical cases, and a security review plus backup/restore drill are complete.
