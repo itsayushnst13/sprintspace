@@ -81,9 +81,10 @@ test("complete workspace collaboration journey", async ({ browser, page, request
     await expect(page.getByText(developerName, { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Overview", exact: true }).click();
     await page.getByRole("button", { name: /New task/ }).click();
-    await page.getByLabel("Task title").fill(taskTitle);
-    await page.getByLabel("Project").selectOption({ label: projectName });
-    const assignee = page.getByLabel("Assign to developer");
+    const taskModal = page.locator(".create-modal");
+    await taskModal.getByLabel("Task title", { exact: true }).fill(taskTitle);
+    await taskModal.getByLabel("Project", { exact: true }).selectOption({ label: projectName });
+    const assignee = taskModal.getByLabel("Assign to developer", { exact: true });
     await expect(assignee.locator("option", { hasText: developerName })).toBeAttached();
     await assignee.selectOption({ label: developerName });
     const createdTaskResponse = page.waitForResponse((response) =>
