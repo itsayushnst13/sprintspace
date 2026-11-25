@@ -7,7 +7,8 @@
     "dev": "node --watch src/server.js",
     "build": "node scripts/check-js.js",
     "start": "node src/server.js",
-    "test": "node --test src/tests/*.test.js"
+    "test": "node --test src/tests/*.test.js",
+    "test:integration": "node --test src/e2e/*.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
