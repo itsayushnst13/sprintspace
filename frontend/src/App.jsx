@@ -185,7 +185,7 @@ function App() {
       try {
         const available = await apiRequest("/workspaces");
         const fallback = available.workspaces[0];
-        if (fallback && current.user && getAccessToken()) current.establish(getAccessToken()!, current.user, fallback);
+        if (fallback && current.user && getAccessToken()) current.establish(getAccessToken(), current.user, fallback);
         else {
           await apiRequest("/auth/logout", { method: "POST" }).catch(() => undefined);
           current.clear();
@@ -304,10 +304,10 @@ function App() {
   ).slice(0, showAll ? taskRows.length : 5), [taskRows, taskStatus, taskPriorityFilter, taskProjectFilter, showAll]);
   const myTaskIds = new Set((myTasksQuery.data?.tasks ?? []).map((task) => task._id));
   const myTaskRows = taskRows.filter((task) => myTaskIds.has(task.taskId));
-  const calendarRows = taskRows.filter((task) => task.dueDate).sort((a, b) => taskDueDateKey(a.dueDate!).localeCompare(taskDueDateKey(b.dueDate!)));
+  const calendarRows = taskRows.filter((task) => task.dueDate).sort((a, b) => taskDueDateKey(a.dueDate).localeCompare(taskDueDateKey(b.dueDate)));
   const unscheduledTasks = taskRows.filter((task) => !task.dueDate);
   const calendarMonthKey = `${calendarMonth.getFullYear()}-${String(calendarMonth.getMonth() + 1).padStart(2, "0")}`;
-  const calendarMonthTaskCount = calendarRows.filter((task) => taskDueDateKey(task.dueDate!).startsWith(calendarMonthKey)).length;
+  const calendarMonthTaskCount = calendarRows.filter((task) => taskDueDateKey(task.dueDate).startsWith(calendarMonthKey)).length;
   const selectedTask = tasksQuery.data?.tasks.find((task) => task._id === selectedTaskId);
   const selectedProject = projectRows.find((project) => project.id === selectedProjectId);
   const calendarGridStart = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1 - ((calendarMonth.getDay() + 6) % 7));
@@ -319,7 +319,7 @@ function App() {
 
   const switchWorkspace = (workspace) => {
     if (!session.user || !getAccessToken()) return;
-    session.establish(getAccessToken()!, session.user, workspace);
+    session.establish(getAccessToken(), session.user, workspace);
     setWorkspaceMenuOpen(false);
     setActiveNav("Overview");
     setSelectedProjectId(null);
@@ -351,7 +351,7 @@ function App() {
     queryClient.setQueryData(["user-workspaces"], result);
     const workspace = result.workspaces.find((item) => item.id === accepted.workspaceId);
     if (workspace && session.user && getAccessToken()) {
-      session.establish(getAccessToken()!, session.user, workspace);
+      session.establish(getAccessToken(), session.user, workspace);
       setActiveNav("Overview");
       setInviteFeedback("Invitation accepted. Workspace switched successfully.");
       setAcceptInviteToken("");
@@ -414,7 +414,7 @@ function App() {
     });
     setNewWorkspaceName("");
     setCreateModal(null);
-    if (session.user && getAccessToken()) session.establish(getAccessToken()!, session.user, result.workspace);
+    if (session.user && getAccessToken()) session.establish(getAccessToken(), session.user, result.workspace);
     await workspacesQuery.refetch();
   };
   const createProject = async (event) => {
