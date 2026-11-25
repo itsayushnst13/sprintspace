@@ -85,7 +85,7 @@ teamRouter.delete("/invitations/:invitationId", async (req, res, next) => {
     if (req.workspaceRole !== "Admin" && req.workspaceRole !== "Manager") {
       throw new ApiError(403, "Only workspace managers can revoke invitations");
     }
-    const invitationId = (req.params as Record<string, string>)["invitationId"];
+    const invitationId = (req.params)["invitationId"];
     const invitation = await Invitation.findOneAndUpdate({
       _id: invitationId, workspaceId: req.workspaceId, acceptedAt: null, revokedAt: null
     }, { $set: { revokedAt: new Date() } }, { new: true });
@@ -98,7 +98,7 @@ teamRouter.patch("/members/:memberId/role", async (req, res, next) => {
   try {
     if (req.workspaceRole !== "Admin") throw new ApiError(403, "Only workspace admins can change member roles");
     const { role } = z.object({ role: z.enum(["Manager", "Developer", "Member"]) }).parse(req.body);
-    const memberId = (req.params as Record<string, string>)["memberId"];
+    const memberId = (req.params)["memberId"];
     const target = await WorkspaceMember.findOne({ _id: memberId, workspaceId: req.workspaceId, status: "active" });
     if (!target) throw new ApiError(404, "Workspace member not found");
     if (target.role === "Admin") throw new ApiError(400, "Transfer workspace ownership before changing the admin role");
@@ -113,7 +113,7 @@ teamRouter.patch("/members/:memberId/role", async (req, res, next) => {
 
 teamRouter.delete("/members/:memberId", async (req, res, next) => {
   try {
-    const memberId = (req.params as Record<string, string>)["memberId"];
+    const memberId = (req.params)["memberId"];
     const target = await WorkspaceMember.findOne({ _id: memberId, workspaceId: req.workspaceId, status: "active" });
     if (!target) throw new ApiError(404, "Workspace member not found");
     const isSelf = target.userId.toString() === req.userId;

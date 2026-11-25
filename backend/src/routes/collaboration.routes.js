@@ -15,7 +15,7 @@ commentsRouter.use(requireAuth, requireWorkspaceMember());
 
 commentsRouter.get("/", async (req, res, next) => {
   try {
-    const taskId = (req.params as Record<string, string>)["taskId"];
+    const taskId = (req.params)["taskId"];
     const task = await Task.exists({ _id: taskId, workspaceId: req.workspaceId });
     if (!task) throw new ApiError(404, "Task not found");
     const comments = await Comment.find({ taskId, workspaceId: req.workspaceId })
@@ -26,7 +26,7 @@ commentsRouter.get("/", async (req, res, next) => {
 
 commentsRouter.post("/", async (req, res, next) => {
   try {
-    const taskId = (req.params as Record<string, string>)["taskId"];
+    const taskId = (req.params)["taskId"];
     const { body } = z.object({ body: z.string().trim().min(1).max(4000) }).parse(req.body);
     const task = await Task.findOne({ _id: taskId, workspaceId: req.workspaceId });
     if (!task) throw new ApiError(404, "Task not found");
@@ -55,7 +55,7 @@ commentsRouter.post("/", async (req, res, next) => {
 
 commentsRouter.delete("/:commentId", async (req, res, next) => {
   try {
-    const commentId = (req.params as Record<string, string>)["commentId"];
+    const commentId = (req.params)["commentId"];
     const comment = await Comment.findOne({ _id: commentId, workspaceId: req.workspaceId });
     if (!comment) throw new ApiError(404, "Comment not found");
     if (comment.authorId.toString() !== req.userId && req.workspaceRole !== "Admin") {
@@ -94,7 +94,7 @@ notificationsRouter.get("/", async (req, res, next) => {
 });
 notificationsRouter.patch("/:notificationId/read", async (req, res, next) => {
   try {
-    const notificationId = (req.params as Record<string, string>)["notificationId"];
+    const notificationId = (req.params)["notificationId"];
     const notification = await Notification.findOneAndUpdate({
       _id: notificationId, workspaceId: req.workspaceId,
       recipientId: req.userId, readAt: null

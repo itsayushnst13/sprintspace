@@ -15,7 +15,7 @@ analyticsRouter.get("/", async (req, res, next) => {
   try {
     const workspaceId = req.workspaceId!;
     const cacheKey = `workspace:${workspaceId}:analytics`;
-    let cached: string | null = null;
+    let cached = null;
     try { cached = await redis.get(cacheKey); }
     catch (cacheError) { console.warn("Analytics cache read failed:", cacheError); }
     if (cached) {

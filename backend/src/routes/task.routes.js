@@ -29,7 +29,7 @@ const taskInput = z.object({
 
 taskRouter.get("/", async (req, res, next) => {
   try {
-    const filter: Record<string, unknown> = { workspaceId: req.workspaceId };
+    const filter = { workspaceId: req.workspaceId };
     if (typeof req.query.projectId === "string") filter.projectId = req.query.projectId;
     if (typeof req.query.status === "string") filter.status = req.query.status;
     if (req.query.mine === "true") filter.$or = [{ createdBy: req.userId }, { assigneeId: req.userId }];
@@ -81,7 +81,7 @@ taskRouter.patch("/:taskId", async (req, res, next) => {
     if (!existingTask) throw new ApiError(404, "Task not found");
     const isCreator = existingTask.createdBy.toString() === req.userId;
     const isAssignee = existingTask.assigneeId?.toString() === req.userId;
-    if (!req.workspaceRole || !canEditTask(req.workspaceRole, isCreator, isAssignee, Object.keys(input) as Array<"title" | "description" | "status" | "priority" | "assigneeId" | "dueDate">)) {
+    if (!req.workspaceRole || !canEditTask(req.workspaceRole, isCreator, isAssignee, Object.keys(input))) {
       throw new ApiError(403, "Assignees can update task status; task creators and workspace managers can edit all task fields");
     }
     if (Object.prototype.hasOwnProperty.call(input, "assigneeId") && !input.assigneeId) {

@@ -3,31 +3,24 @@ import { ArrowRight, Command, Eye, EyeOff, LockKeyhole, Mail, UserRound } from "
 import { apiRequest } from "../lib/api";
 import { useSession } from "../store/session";
 
-type AuthResponse = {
-  accessToken: string;
-  user: { id: string; name: string; email: string };
-  workspace?: { id: string; name: string; slug: string; role: string };
-  workspaces?: Array<{ id: string; name: string; slug: string; role: string }>;
-};
-
 export function AuthScreen() {
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [pendingResponse, setPendingResponse] = useState<AuthResponse | null>(null);
+  const [pendingResponse, setPendingResponse] = useState(null);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState("");
   const establish = useSession((state) => state.establish);
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event) {
     event.preventDefault();
     setError("");
     setBusy(true);
     try {
-      const response = await apiRequest<AuthResponse>(`/auth/${mode}`, {
+      const response = await apiRequest(`/auth/${mode}`, {
         method: "POST",
         body: JSON.stringify(mode === "register" ? { name, email, password } : { email, password })
       });

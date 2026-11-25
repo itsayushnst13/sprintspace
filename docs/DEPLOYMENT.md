@@ -43,7 +43,7 @@ Before deploying to a public environment:
 
 ## Container images
 
-- `backend/Dockerfile`: compiles TypeScript and runs the API as the non-root `node` user.
+- `backend/Dockerfile`: checks native JavaScript source files and runs the API directly with Node.js as the non-root `node` user.
 - `frontend/Dockerfile`: builds the Vite application and serves the static SPA through Nginx.
 - `frontend/nginx.conf`: forwards `/api` and `/socket.io` traffic to the backend.
 

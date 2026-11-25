@@ -4,6 +4,6 @@ export function createOpaqueRefreshToken(): string {
   return randomBytes(48).toString("base64url");
 }
 
-export function hashRefreshToken(token: string): string {
+export function hashRefreshToken(token): string {
   return createHash("sha256").update(token).digest("hex");
 }
