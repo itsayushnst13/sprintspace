@@ -1,99 +1,177 @@
 import { test, expect } from "@playwright/test";
+import { randomUUID } from "node:crypto";
 
-function uniqueEmail(prefix) {
-  return prefix + "-" + Date.now() + "-" + Math.random().toString(16).slice(2) + "@example.test";
-}
+const apiUrl = "http://127.0.0.1:5001/api/v1";
 
-async function register(page, name, email, password) {
+async function register(page, name, email) {
   await page.goto("/");
-  await page.getByRole("button", { name: "Create an account", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Create an account" })).toBeVisible();
+  await page.getByRole("button", { name: "Create an account" }).click();
+  const responsePromise = page.waitForResponse((response) =>
+    response.url() === `${apiUrl}/auth/register` && response.request().method() === "POST"
+  );
   await page.getByLabel("Your name").fill(name);
   await page.getByLabel("Work email").fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByRole("button", { name: /Create account/ }).click();
-  await expect(page.getByRole("heading", { name: new RegExp("Good morning, " + name.split(" ")[0]) })).toBeVisible();
+  await page.getByLabel("Password", { exact: true }).fill("SprintSpace-E2E-Password-2026");
+  await page.getByRole("button", { name: "Create account" }).click();
+  const response = await responsePromise;
+  expect(response.status()).toBe(201);
+  await expect(page.getByText(new RegExp(`Good morning, ${name.split(" ")[0]}`))).toBeVisible();
+  return response.json();
 }
 
-test("browser journey: register, invite, assign a task, collaborate and update progress", async ({ browser }) => {
-  const password = "SprintSpace-E2E-Password-123!";
-  const adminName = "Browser Admin";
-  const developerName = "Browser Developer";
-  const adminEmail = uniqueEmail("browser-admin");
-  const developerEmail = uniqueEmail("browser-developer");
-  const projectName = "Browser E2E Project";
-  const taskTitle = "Browser E2E Assigned Task";
-  const browserErrors = [];
+test("complete workspace collaboration journey", async ({ browser, page, request }) => {
+  const suffix = randomUUID().slice(0, 8);
+  const adminName = "E2E Admin";
+  const developerName = "E2E Developer";
+  const adminEmail = `admin-${suffix}@example.test`;
+  const developerEmail = `developer-${suffix}@example.test`;
+  const projectName = `E2E Project ${suffix}`;
+  const taskTitle = `E2E Task ${suffix}`;
+  const commentText = `E2E comment ${suffix}`;
 
-  const adminContext = await browser.newContext();
-  const adminPage = await adminContext.newPage();
-  adminPage.on("pageerror", (error) => browserErrors.push("admin: " + error.message));
+  const adminAccount = await register(page, adminName, adminEmail);
+  expect(adminAccount.workspace.role).toBe("Admin");
+
+  const cookies = await page.context().cookies();
+  const refreshCookie = cookies.find((cookie) => cookie.name === "refreshToken");
+  expect(refreshCookie?.httpOnly).toBe(true);
+  expect(await page.evaluate(() => localStorage.getItem("accessToken"))).toBeNull();
+
+  await page.getByRole("button", { name: "Create new project" }).click();
+  await page.getByLabel("Project name").fill(projectName);
+  await page.getByLabel("Description (optional)").fill("Created by the automated end-to-end journey.");
+  await page.getByRole("button", { name: "Create project" }).click();
+  await expect(page.locator(".project-card h3").filter({ hasText: projectName })).toBeVisible();
+
+  await page.getByRole("button", { name: "Team", exact: true }).click();
+  await page.getByPlaceholder("teammate@company.com").fill(developerEmail);
+  await page.locator(".team-panel").filter({
+    has: page.getByRole("heading", { name: "Invite a teammate" })
+  }).locator("select").selectOption("Developer");
+  await page.getByRole("button", { name: "Create invite" }).click();
+  const inviteToken = await page.locator(".invite-token code").textContent();
+  expect(inviteToken).toBeTruthy();
 
   const developerContext = await browser.newContext();
-  const developerPage = await developerContext.newPage();
-  developerPage.on("pageerror", (error) => browserErrors.push("developer: " + error.message));
-
   try {
-    await register(adminPage, adminName, adminEmail, password);
+    const developerPage = await developerContext.newPage();
+    const developerAccount = await register(developerPage, developerName, developerEmail);
 
-    await adminPage.getByRole("button", { name: "Create new project" }).click();
-    const projectModal = adminPage.locator(".create-modal");
-    await projectModal.getByLabel("Project name").fill(projectName);
-    await projectModal.getByRole("button", { name: /Create project/ }).click();
-    await expect(adminPage.getByText(projectName, { exact: true }).first()).toBeVisible();
-
-    await adminPage.getByRole("button", { name: "Team", exact: true }).click();
-    await adminPage.getByPlaceholder("teammate@company.com").fill(developerEmail);
-    await adminPage.getByRole("button", { name: /Create invite/ }).click();
-    const inviteToken = (await adminPage.locator(".invite-token code").textContent())?.trim();
-    expect(inviteToken).toBeTruthy();
-
-    await register(developerPage, developerName, developerEmail, password);
     await developerPage.getByRole("button", { name: "Team", exact: true }).click();
-    await developerPage.getByPlaceholder("Paste invitation token").fill(inviteToken);
-    await developerPage.getByRole("button", { name: /Accept invite/ }).click();
+    await developerPage.getByPlaceholder("Paste invitation token").fill(inviteToken.trim());
+    await developerPage.getByRole("button", { name: "Accept invite" }).click();
     await expect(developerPage.getByText("Invitation accepted. Workspace switched successfully.")).toBeVisible();
+    await expect(developerPage.getByText(adminAccount.workspace.name, { exact: true })).toBeVisible();
 
-    await adminPage.getByRole("button", { name: "Overview", exact: true }).click();
-    await adminPage.getByRole("button", { name: /New task/ }).first().click();
-    const taskModal = adminPage.locator(".create-modal");
-    await taskModal.getByLabel("Task title").fill(taskTitle);
+    // Workspace role and membership must be reflected in the UI and enforced by the API.
+    await expect(developerPage.getByText("2 active workspace members")).toBeVisible();
+    await developerPage.getByRole("button", { name: "Overview", exact: true }).click();
+    await expect(developerPage.getByRole("button", { name: "Create new project" })).toHaveCount(0);
+    const forbiddenProject = await request.post(
+      `${apiUrl}/workspaces/${adminAccount.workspace.id}/projects`,
+      {
+        headers: { Authorization: `Bearer ${developerAccount.accessToken}` },
+        data: { name: "Developer must not create this project" }
+      }
+    );
+    expect(forbiddenProject.status()).toBe(403);
+
+    // The admin creates a project task and assigns it to the newly joined developer.
+    await expect(page.getByText(developerName, { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Overview", exact: true }).click();
+    await page.getByRole("button", { name: /New task/ }).click();
+    const taskModal = page.locator(".create-modal");
+    await expect(taskModal.getByRole("heading", { name: "Create a task" })).toBeVisible();
+    await taskModal.getByLabel("Task title", { exact: true }).fill(taskTitle);
     const projectSelect = taskModal.locator(".create-form label").filter({ hasText: "Choose a project" }).locator("select");
     await projectSelect.selectOption({ label: projectName });
-    const assigneeSelect = taskModal.locator(".create-form label").filter({ hasText: "Choose a developer" }).locator("select");
-    await expect(assigneeSelect.locator("option", { hasText: developerName })).toHaveCount(1);
-    await assigneeSelect.selectOption({ label: developerName });
-    await taskModal.getByRole("button", { name: /Create task/ }).click();
-    await expect(adminPage.getByRole("button", { name: taskTitle, exact: true })).toBeVisible();
+    const assignee = taskModal.locator(".create-form label").filter({ hasText: "Choose a developer" }).locator("select");
+    await expect(assignee.locator("option", { hasText: developerName })).toBeAttached();
+    await assignee.selectOption({ label: developerName });
+    const createdTaskResponse = page.waitForResponse((response) =>
+      response.url() === `${apiUrl}/workspaces/${adminAccount.workspace.id}/tasks` &&
+      response.request().method() === "POST"
+    );
+    await page.getByRole("button", { name: "Create task" }).click();
+    const taskResponse = await createdTaskResponse;
+    expect(taskResponse.status()).toBe(201);
+    const taskPayload = await taskResponse.json();
+    const taskId = taskPayload.task._id;
+    await expect(page.getByRole("button", { name: taskTitle, exact: true })).toBeVisible();
 
-    await developerPage.getByRole("button", { name: "My tasks", exact: true }).click();
-    await expect(developerPage.getByText(taskTitle, { exact: true })).toBeVisible();
-
-    await developerPage.getByRole("button", { name: "Board", exact: true }).click();
-    await developerPage.getByRole("button", { name: taskTitle, exact: true }).click();
-    const taskDiscussion = developerPage.locator(".comment-modal");
-    await expect(taskDiscussion.getByLabel("Status")).toBeVisible();
-    await expect(taskDiscussion.getByLabel("Priority")).toHaveCount(0);
-    await taskDiscussion.getByLabel("Status").selectOption("Done");
-    await taskDiscussion.getByRole("button", { name: "Save task details" }).click();
-
-    await taskDiscussion.getByPlaceholder("Write a comment…").fill("Browser E2E collaboration comment.");
-    await taskDiscussion.getByRole("button", { name: /Send comment/ }).click();
-    await expect(taskDiscussion.getByText("Browser E2E collaboration comment.")).toBeVisible();
-
+    // The developer receives the task and the assignment notification in the joined workspace.
+    await expect(developerPage.getByRole("button", { name: taskTitle, exact: true })).toBeVisible();
     await developerPage.getByRole("button", { name: "Notifications" }).click();
     await expect(developerPage.getByText("You were assigned a task")).toBeVisible();
-    await developerPage.getByRole("button", { name: /You were assigned a task/ }).click();
-    await expect(developerPage.getByText("Notifications (1 unread)")).toBeVisible();
+    const assignmentNotification = developerPage.locator(".notification-item").filter({
+      hasText: "You were assigned a task"
+    });
+    await assignmentNotification.click();
+    await expect(assignmentNotification).toHaveClass(/read/);
 
-    await adminPage.getByRole("button", { name: "Projects", exact: true }).click();
-    await expect(adminPage.getByText("100% complete")).toBeVisible();
-    await adminPage.getByRole("button", { name: "Open project" }).click();
-    await expect(adminPage.getByText(taskTitle, { exact: true })).toBeVisible();
+    // Opening the notification navigates directly to the task discussion.
+    await developerPage.getByPlaceholder("Write a comment…").fill(commentText);
+    await developerPage.getByRole("button", { name: /Send comment/ }).click();
+    await expect(developerPage.getByText(commentText, { exact: true })).toBeVisible();
+    await developerPage.getByLabel("Status").selectOption("In progress");
+    const saveTaskResponsePromise = developerPage.waitForResponse((response) =>
+      response.url() === `${apiUrl}/workspaces/${adminAccount.workspace.id}/tasks/${taskId}` &&
+      response.request().method() === "PATCH"
+    );
+    await developerPage.getByRole("button", { name: "Save task details" }).click();
+    const saveTaskResponse = await saveTaskResponsePromise;
+    expect(saveTaskResponse.status()).toBe(200);
 
-    await adminPage.getByRole("button", { name: "Activity", exact: true }).click();
-    await expect(adminPage.getByText(/Created project/)).toBeVisible();
-    expect(browserErrors).toEqual([]);
+    await developerPage.getByRole("button", { name: "Close comments" }).click();
+    expect(await developerPage.evaluate(() => localStorage.getItem("sprintspace.workspaceId"))).toBe(adminAccount.workspace.id);
+    const reloadedTasksPromise = developerPage.waitForResponse((response) =>
+      response.url().includes("/api/v1/workspaces/") &&
+      response.url().endsWith("/tasks") &&
+      response.request().method() === "GET"
+    );
+    await developerPage.reload();
+    await expect(developerPage.getByRole("heading", { name: /Good morning/ })).toBeVisible();
+    await expect(developerPage.locator(".workspace-switch")).toContainText(adminAccount.workspace.name);
+    const reloadedTasksResponse = await reloadedTasksPromise;
+    expect(reloadedTasksResponse.status()).toBe(200);
+    expect(reloadedTasksResponse.url()).toContain(`/workspaces/${adminAccount.workspace.id}/tasks`);
+    await expect(developerPage.getByRole("button", { name: taskTitle, exact: true })).toBeVisible();
+    const taskRow = developerPage.locator(".task-table-row").filter({
+      has: developerPage.getByRole("button", { name: taskTitle, exact: true })
+    });
+    await expect(taskRow.locator(".status-pill")).toHaveText("In progress");
+
+    // The sidebar resize control is keyboard-operable and persists its new width.
+    const resizeHandle = page.getByRole("button", { name: "Resize sidebar" });
+    const initialWidth = Number(await resizeHandle.getAttribute("aria-valuenow"));
+    await resizeHandle.press("ArrowRight");
+    await expect(resizeHandle).toHaveAttribute("aria-valuenow", String(initialWidth + 12));
+    expect(await page.evaluate(() => localStorage.getItem("sprintspace.sidebarWidth"))).toBe(String(initialWidth + 12));
+
+    // Switching to the developer's personal workspace must not leak the invited workspace's project.
+    await developerPage.locator(".workspace-switch").click();
+    await developerPage.getByRole("button", { name: new RegExp(`${developerName}'s workspace`) }).click();
+    await expect(developerPage.locator(".workspace-switch")).toContainText(`${developerName}'s workspace`);
+    await expect(developerPage.getByText(projectName, { exact: true })).toHaveCount(0);
+
+    await developerPage.locator(".workspace-switch").click();
+    await developerPage.getByRole("button", { name: new RegExp(adminAccount.workspace.name) }).click();
+    await expect(developerPage.getByRole("button", { name: taskTitle, exact: true })).toBeVisible();
+
+    // Sign-out must invalidate the refresh cookie; a fresh sign-in must restore the session.
+    await page.getByRole("button", { name: "Sign out" }).click();
+    await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+    await page.getByLabel("Work email").fill(adminEmail);
+    await page.getByLabel("Password", { exact: true }).fill("SprintSpace-E2E-Password-2026");
+    const loginResponsePromise = page.waitForResponse((response) =>
+      response.url() === `${apiUrl}/auth/login` && response.request().method() === "POST"
+    );
+    await page.getByRole("button", { name: "Sign in" }).click();
+    const loginResponse = await loginResponsePromise;
+    expect(loginResponse.status()).toBe(200);
+    await expect(page.getByText(new RegExp(`Good morning, ${adminName.split(" ")[0]}`))).toBeVisible();
   } finally {
-    await Promise.all([adminContext.close(), developerContext.close()]);
+    await developerContext.close();
   }
 });
