@@ -12,7 +12,7 @@ async function register(page, name, email) {
   );
   await page.getByLabel("Your name").fill(name);
   await page.getByLabel("Work email").fill(email);
-  await page.getByLabel("Password").fill("SprintSpace-E2E-Password-2026");
+  await page.getByLabel("Password", { exact: true }).fill("SprintSpace-E2E-Password-2026");
   await page.getByRole("button", { name: "Create account" }).click();
   const response = await responsePromise;
   expect(response.status()).toBe(201);
