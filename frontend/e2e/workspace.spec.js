@@ -42,7 +42,7 @@ test("complete workspace collaboration journey", async ({ browser, page, request
   await page.getByLabel("Project name").fill(projectName);
   await page.getByLabel("Description (optional)").fill("Created by the automated end-to-end journey.");
   await page.getByRole("button", { name: "Create project" }).click();
-  await expect(page.getByText(projectName, { exact: true })).toBeVisible();
+  await expect(page.locator(".project-card h3").filter({ hasText: projectName })).toBeVisible();
 
   await page.getByRole("button", { name: "Team", exact: true }).click();
   await page.getByPlaceholder("teammate@company.com").fill(developerEmail);
