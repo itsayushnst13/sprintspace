@@ -115,7 +115,13 @@ test("complete workspace collaboration journey", async ({ browser, page, request
     await developerPage.getByRole("button", { name: /Send comment/ }).click();
     await expect(developerPage.getByText(commentText, { exact: true })).toBeVisible();
     await developerPage.getByLabel("Status").selectOption("In progress");
+    const saveTaskResponsePromise = developerPage.waitForResponse((response) =>
+      response.url() === `${apiUrl}/workspaces/${adminAccount.workspace.id}/tasks/${taskId}` &&
+      response.request().method() === "PATCH"
+    );
     await developerPage.getByRole("button", { name: "Save task details" }).click();
+    const saveTaskResponse = await saveTaskResponsePromise;
+    expect(saveTaskResponse.status()).toBe(200);
 
     await developerPage.getByRole("button", { name: "Close comments" }).click();
     expect(await developerPage.evaluate(() => localStorage.getItem("sprintspace.workspaceId"))).toBe(adminAccount.workspace.id);
@@ -130,8 +136,6 @@ test("complete workspace collaboration journey", async ({ browser, page, request
     const reloadedTasksResponse = await reloadedTasksPromise;
     expect(reloadedTasksResponse.status()).toBe(200);
     expect(reloadedTasksResponse.url()).toContain(`/workspaces/${adminAccount.workspace.id}/tasks`);
-    const reloadedTasks = await reloadedTasksResponse.json();
-    expect(reloadedTasks.tasks.some((task) => task.title === taskTitle)).toBe(true);
     await expect(developerPage.getByRole("button", { name: taskTitle, exact: true })).toBeVisible();
     const taskRow = developerPage.locator(".task-table-row").filter({
       has: developerPage.getByRole("button", { name: taskTitle, exact: true })
