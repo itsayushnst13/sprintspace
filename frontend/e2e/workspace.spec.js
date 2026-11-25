@@ -101,6 +101,11 @@ test("complete workspace collaboration journey", async ({ browser, page, request
     await expect(developerPage.getByRole("button", { name: taskTitle, exact: true })).toBeVisible();
     await developerPage.getByRole("button", { name: "Notifications" }).click();
     await expect(developerPage.getByText("You were assigned a task")).toBeVisible();
+    const assignmentNotification = developerPage.locator(".notification-item").filter({
+      hasText: "You were assigned a task"
+    });
+    await assignmentNotification.click();
+    await expect(assignmentNotification).toHaveClass(/read/);
 
     // Task discussion and assignee status updates must persist across a reload.
     await developerPage.getByRole("button", { name: taskTitle, exact: true }).click();
@@ -134,6 +139,19 @@ test("complete workspace collaboration journey", async ({ browser, page, request
     await developerPage.locator(".workspace-switch").click();
     await developerPage.getByRole("button", { name: new RegExp(adminAccount.workspace.name) }).click();
     await expect(developerPage.getByRole("button", { name: taskTitle, exact: true })).toBeVisible();
+
+    // Sign-out must invalidate the refresh cookie; a fresh sign-in must restore the session.
+    await page.getByRole("button", { name: "Sign out" }).click();
+    await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+    await page.getByLabel("Work email").fill(adminEmail);
+    await page.getByLabel("Password", { exact: true }).fill("SprintSpace-E2E-Password-2026");
+    const loginResponsePromise = page.waitForResponse((response) =>
+      response.url() === `${apiUrl}/auth/login` && response.request().method() === "POST"
+    );
+    await page.getByRole("button", { name: "Sign in" }).click();
+    const loginResponse = await loginResponsePromise;
+    expect(loginResponse.status()).toBe(200);
+    await expect(page.getByText(new RegExp(`Good morning, ${adminName.split(" ")[0]}`))).toBeVisible();
   } finally {
     await developerContext.close();
   }
